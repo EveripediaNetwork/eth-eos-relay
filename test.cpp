@@ -48,32 +48,35 @@ bool getTransactionProof (const std::string& txHash){
         // }
 
         dev::RLPStream* txRLPStream = new dev::RLPStream();
-        std::list<std::string> mylist;
-        std::list<std::string>::iterator it;
+
+        std::vector<std::string> txHashVector {};
+
 
         for ( json::iterator index = blockTransactions.begin(); index != blockTransactions.end() ; ++index ) {
                 json txJSON = *index;
                 std::string txHash = txJSON["hash"];
                 int txIndex = txJSON["transactionIndex"];
                 std::cout << txHash << " | Index: " << txIndex << std::endl;
-                txRLPStream->append(txHash);
-                mylist.push_back (txHash);
+
+                txHashVector.push_back (txHash);
 
 
                 // std::string txIndexRLP = rlp_encode(txIndex);
                 // std::cout << txJSON["hash"] << " | Index RLP: " << txIndexRLP << std::endl;
         }
 
-        std::cout << "---------------------------" << txRLPStream << "---------------------------" << std::endl;
-
+        txRLPStream->appendVector(txHashVector);
         bytes bytedTxRLPStream = txRLPStream->out();
-        dev::RLP* txRLPList = new dev::RLP(bytedTxRLPStream, dev::RLP::LaissezFaire);
+        // dev::RLP* txRLPList = new dev::RLP(bytedTxRLPStream, dev::RLP::LaissezFaire);
+        dev::RLP* txRLPList = new dev::RLP(bytedTxRLPStream);
 
-        std::cout << "---------------------------" << txRLPList.itemCount() << "---------------------------" << std::endl;
+
+        std::cout << "---------------------------" << toHex(bytedTxRLPStream) << "---------------------------" << std::endl;
 
         delete txRLPStream;
-        delete txRLPList;
-
+        // delete txRLPList;
+        // delete txRLPStreamTest;
+        // delete txRLPListTest;
 
 
 }
