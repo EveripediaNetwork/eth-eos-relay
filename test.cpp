@@ -1,11 +1,14 @@
 #include <iostream>
 #include <string>
+#include <typeinfo>
 #include "custom-headers/json.hpp"
 #include "custom-headers/constants.hpp"
 #include "custom-headers/radix_tree.hpp"
-#include "libdevcore/SHA3.h"
-#include "libdevcore/rlp.h"
-#include "libdevcore/TrieCommon.h"
+#include "custom-headers/manual_rlp.hpp"
+#include "libdevcore/SHA3.cpp"
+#include "libdevcore/RLP.cpp"
+#include "libdevcore/CommonData.cpp"
+#include "libdevcore/TrieCommon.cpp"
 
 using json = nlohmann::json;
 
@@ -41,7 +44,9 @@ bool getTransactionProof (const std::string& txHash){
 
         for ( json::iterator index = blockTransactions.begin(); index != blockTransactions.end() ; ++index ) {
                 json txJSON = *index;
-                std::cout << txJSON["hash"] << std::endl;
+                std::string txIndex = std::to_string(static_cast<int>(txJSON["transactionIndex"]));
+                std::string txIndexRLP = rlp_encode(txIndex);
+                std::cout << txJSON["hash"] << " | Index RLP: " << txIndexRLP << std::endl;
         }
 
         // for (auto txID : txBlockJSON["transactions"]){
