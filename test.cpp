@@ -4,15 +4,15 @@
 #include "custom-headers/json.hpp"
 #include "custom-headers/constants.hpp"
 #include "custom-headers/radix_tree.hpp"
-#include "custom-headers/manual_rlp.hpp"
-#include "libdevcore/SHA3.cpp"
-#include "libdevcore/RLP.cpp"
-#include "libdevcore/CommonData.cpp"
-#include "libdevcore/TrieCommon.cpp"
+#include "custom-headers/verify_blocks.hpp"
+#include <list>
+#include <vector>
+
+
 
 using json = nlohmann::json;
 
-// g++ -c test.cpp -o out.o && g++ out.o -o runner && ./runner
+// g++ -I . -c test.cpp -o out.o && g++ out.o /usr/lib/x86_64-linux-gnu/libboost_system.so -o runner && ./runner
 
 bool getTransactionProof (const std::string& txHash){
         std::cout << "Received tx hash: " <<  txHash << '\n';
@@ -38,21 +38,41 @@ bool getTransactionProof (const std::string& txHash){
         // std::cout << txBlockJSON.dump(4) << std::endl;
         std::cout << "\n-----------------------------\n"<< std::endl;
 
-        radix_tree<std::string, int> tree;
+        // radix_tree<std::string, int> tree;
 
         json blockTransactions = txBlockJSON["transactions"];
-
-        for ( json::iterator index = blockTransactions.begin(); index != blockTransactions.end() ; ++index ) {
-                json txJSON = *index;
-                std::string txIndex = std::to_string(static_cast<int>(txJSON["transactionIndex"]));
-                std::string txIndexRLP = rlp_encode(txIndex);
-                std::cout << txJSON["hash"] << " | Index RLP: " << txIndexRLP << std::endl;
-        }
 
         // for (auto txID : txBlockJSON["transactions"]){
         //         auto innerTxJSON = json::parse(txID);
         //         std::cout << innerTxJSON["hash"] << '\n';
         // }
+
+        dev::RLPStream* txRLPStream = new dev::RLPStream();
+        std::list<std::string> mylist;
+        std::list<std::string>::iterator it;
+
+        for ( json::iterator index = blockTransactions.begin(); index != blockTransactions.end() ; ++index ) {
+                json txJSON = *index;
+                std::string txHash = txJSON["hash"];
+                int txIndex = txJSON["transactionIndex"];
+                std::cout << txHash << " | Index: " << txIndex << std::endl;
+                txRLPStream->append(txHash);
+                mylist.push_back (txHash);
+
+
+                // std::string txIndexRLP = rlp_encode(txIndex);
+                // std::cout << txJSON["hash"] << " | Index RLP: " << txIndexRLP << std::endl;
+        }
+
+        std::cout << "---------------------------" << txRLPStream << "---------------------------" << std::endl;
+
+        bytes bytedTxRLPStream = txRLPStream->out();
+        dev::RLP* txRLPList = new dev::RLP(bytedTxRLPStream, dev::RLP::LaissezFaire);
+
+        std::cout << "---------------------------" << txRLPList.itemCount() << "---------------------------" << std::endl;
+
+        delete txRLPStream;
+        delete txRLPList;
 
 
 
