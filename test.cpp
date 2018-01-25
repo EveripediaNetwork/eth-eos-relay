@@ -3,7 +3,6 @@
 #include <typeinfo>
 #include "custom-headers/json.hpp"
 #include "custom-headers/constants.hpp"
-#include "custom-headers/radix_tree.hpp"
 #include "custom-headers/verify_blocks.hpp"
 #include <list>
 #include <vector>
@@ -12,7 +11,10 @@
 
 using json = nlohmann::json;
 
-// g++ -I . -c test.cpp -o out.o && g++ out.o /usr/lib/x86_64-linux-gnu/libboost_system.so -o runner && ./runner
+// g++ -I . -c test.cpp -o out.o && g++ out.o -L/usr/lib/x86_64-linux-gnu/libboost_system.so -L/usr/lib/x86_64-linux-gnu/libboost_thread.so -o runner && ./runner
+
+// g++ -I . -c test.cpp -o out.o && g++ out.o -pthread -lboost_filesystem -o runner && ./runner
+
 
 bool getTransactionProof (const std::string& txHash){
         std::cout << "Received tx hash: " <<  txHash << '\n';
@@ -68,16 +70,41 @@ bool getTransactionProof (const std::string& txHash){
         txRLPStream->appendVector(txHashVector);
         bytes bytedTxRLPStream = txRLPStream->out();
         // dev::RLP* txRLPList = new dev::RLP(bytedTxRLPStream, dev::RLP::LaissezFaire);
-        dev::RLP* txRLPList = new dev::RLP(bytedTxRLPStream);
+        dev::RLP txList = dev::RLP(bytedTxRLPStream);
 
 
-        std::cout << "---------------------------" << toHex(bytedTxRLPStream) << "---------------------------" << std::endl;
+
+        std::cout << "---------------------------\n" << toHex(bytedTxRLPStream) << "---------------------------\n" << std::endl;
+        // std::cout << "------------Item-Count: " << txList.itemCount() << "---------------------------\n" << std::endl;
+        auto expectedRoot = trieRootOver(txList.itemCount(), [&](unsigned i){ return rlp(i); }, [&](unsigned i){ return txList[i].data().toBytes(); });
+        std::string rootString = toString(expectedRoot);
+
+        std::cout << "---------------------------\n" << rootString << "---------------------------\n" << std::endl;
+
+	MemoryDB tm;
+	GenericTrieDB<MemoryDB> transactionsTrie(&tm);
+	transactionsTrie.init();
+
+	vector<bytesConstRef> txs;
+
+	for (unsigned i = 0; i < txList.itemCount(); ++i)
+	{
+		RLPStream k;
+		k << i;
+
+		transactionsTrie.insert(&k.out(), txList[i].data());
+
+		txs.push_back(txList[i].data());
+		std::cout << toHex(k.out()) << toHex(txList[i].data());
+	}
+	std::cout << "trieRootOver" << expectedRoot  << std::endl;
+	std::cout << "orderedTrieRoot" << orderedTrieRoot(txs)  << std::endl;
+	std::cout << "TrieDB" << transactionsTrie.root()  << std::endl;
+	std::cout << "Contents:"  << std::endl;
+	for (auto const& t: txs)
+		std::cout << toHex(t)  << std::endl;
 
         delete txRLPStream;
-        // delete txRLPList;
-        // delete txRLPStreamTest;
-        // delete txRLPListTest;
-
 
 }
 
