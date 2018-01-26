@@ -36,8 +36,8 @@ template <class T, class U> inline h256 trieRootOver(unsigned _itemCount, T cons
 {
 	BytesMap m;
 	for (unsigned i = 0; i < _itemCount; ++i)
-		m[_getKey(i)] = _getValue;
-		// m[_getKey(i)] = _getValue(i);
+		m[_getKey(i)] = _getValue(i);
+		// m[_getKey(i)] = _getValue;
 	return hash256(m);
 }
 

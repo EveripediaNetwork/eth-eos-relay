@@ -24,92 +24,44 @@ static std::vector<unsigned char> HexToBytes(const std::string& hex) {
 bool getTransactionProof (const std::string& txHash){
         std::cout << "Received tx hash: " <<  txHash << '\n';
 
-        // Need code here to get the raw transaction data from the the Ethereum blockchain
+        // Need code here to fetch the transaction's entire block
         // ...
         // ...
 
         //  Convert the block data into JSON
         auto txBlockJSON = json::parse(BLOCK_ONE_BLOCK_STRING);
-        // std::cout << txBlockJSON.dump(4) << std::endl;
-        std::cout << "\n-----------------------------\n"<< std::endl;
 
-        // radix_tree<std::string, int> tree;
+        // declaring vector of pairs
 
-        json blockTransactions = txBlockJSON["transactions"];
-
-        // for (auto txID : txBlockJSON["transactions"]){
-        //         auto innerTxJSON = json::parse(txID);
-        //         std::cout << innerTxJSON["hash"] << '\n';
-        // }
-
-
-
-
-        // needs to be of form (index, rawtransaction)
+        // Would probably need a for loop here
+        // Need to create tuples of the form (txIndex, HexToBytes(rawTransaction without the leading 0x))
+        //  1 transaction
         // https://etherscan.io/getRawTx?tx=0x5da0298e46e949f863f0873b6f8c102e150dc85d31f4d7c6d7c82cb69c8a672e
+        //  2 transactions
+        // https://www.etherchain.org/block/4052768
+
+        std::vector<std::string> rawTransactionStrings {"0xf86f830128fa850df847580082520894819c0af8a979af4472cc54f60100f2aeec1aa70b8801aa535d3d0c00008026a0be0612e0204c75726f95b5c1b70f7daff440e330a4f16e96ad5e32d58ea92661a02d5c7d18022a322383887fd969bc70c79c68160a3eee978d7da65a3c6677ca4f", "0xf86e8274618507cfbc5f8082520994ac05122f4f6441d5b307fb8a4b13d57f91161f7888066942e7c57760008025a07f5ab43a02383bb892bdf6b006363e4b5ebd194a8b9ee7defa01f185fa06b412a01513f38abc9f7e0b85884af45bf1f6306cf076b4976e1bd122c16db26c289021" };
+
+        std::vector<bytes> byteVector = {};
+        std::vector<std::string> quickVector = {};
+
+        int index = 0;
+        for(std::vector<std::string>::iterator it = rawTransactionStrings.begin(); it != rawTransactionStrings.end(); ++it) {
+                it->erase(0,2);
+                byteVector.push_back(HexToBytes(*it));
+                quickVector.push_back((std::to_string(index), rawTransactionStrings[index] ));
+                index++;
+        }
 
         dev::RLPStream* txRLPStream = new dev::RLPStream();
-        // std::vector<std::string> txHashVector {};
-
-        //
-        // for ( json::iterator index = blockTransactions.begin(); index != blockTransactions.end() ; ++index ) {
-        //         json txJSON = *index;
-        //         std::string txHash = txJSON["hash"];
-        //         int txIndex = txJSON["transactionIndex"];
-        //         std::cout << txHash << " | Index: " << txIndex << std::endl;
-        //
-        //         txHashVector.push_back (txHash);
-        //
-        //
-        //         // std::string txIndexRLP = rlp_encode(txIndex);
-        //         // std::cout << txJSON["hash"] << " | Index RLP: " << txIndexRLP << std::endl;
-        // }
-
-        //REMOVE THE 0x FOR THE RAW TRANSACTION
-        std::vector<byte> byteString = HexToBytes("f88b821a418504a817c800830249f09418a672e11d637fffadccc99b152f4895da06960180a4e56c85520000000000000000000000008c6d052fc566b50aa6ecf5fccc300e2f42b0105d25a09f820dabb270f2e62c376677e33d3aed0b7f6063f5865828baed2729196da6c7a04cc1f88a8fd948c31aeb75d93efdd6f8e22a9bbf2dc1523061d5760b5d76143b");
-
-        std::string raw = "0xf88b821a418504a817c800830249f09418a672e11d637fffadccc99b152f4895da06960180a4e56c85520000000000000000000000008c6d052fc566b50aa6ecf5fccc300e2f42b0105d25a09f820dabb270f2e62c376677e33d3aed0b7f6063f5865828baed2729196da6c7a04cc1f88a8fd948c31aeb75d93efdd6f8e22a9bbf2dc1523061d5760b5d76143b";
-
-
-        std::vector<std::string> txHashVector {("0", raw)};
-        txRLPStream->appendVector(txHashVector);
+        txRLPStream->appendVector(quickVector);
         bytes bytedTxRLPStream = txRLPStream->out();
-        // dev::RLP* txRLPList = new dev::RLP(bytedTxRLPStream, dev::RLP::LaissezFaire);
         dev::RLP txList = dev::RLP(bytedTxRLPStream);
 
-
-        // std::cout << "---------------------------\n" << toHex(bytedTxRLPStream) << "---------------------------\n" << std::endl;
-        // std::cout << "------------Item-Count: " << txList.itemCount() << "---------------------------\n" << std::endl;
-        // auto expectedRoot = trieRootOver(txList.itemCount(), [&](unsigned i){ return rlp(i); }, [&](unsigned i){ return txList[i].data().toBytes(); });
-        auto expectedRoot = trieRootOver(txList.itemCount(), [&](unsigned i){ return rlp(i); }, byteString);
-        std::string rootString = toString(expectedRoot);
+        std::cout << "---------------------------\n" << toHex(bytedTxRLPStream) << "---------------------------\n" << std::endl;
+        auto expectedRoot = trieRootOver(txList.itemCount(), [&](unsigned i){ return rlp(i); }, [&](unsigned i){ return byteVector[i]; });
+        std::string rootString = "0x" + toString(expectedRoot);
         std::cout << "---------------------------\nExpected Root: " << rootString << "---------------------------\n" << std::endl;
-
-
-
-	// MemoryDB tm;
-	// GenericTrieDB<MemoryDB> transactionsTrie(&tm);
-	// transactionsTrie.init();
-        //
-	// vector<bytesConstRef> txs;
-        //
-	// for (unsigned i = 0; i < txList.itemCount(); ++i)
-	// {
-	// 	RLPStream k;
-	// 	k << i;
-        //
-	// 	transactionsTrie.insert(&k.out(), txList[i].data());
-        //
-	// 	txs.push_back(txList[i].data());
-	// 	std::cout << toHex(k.out()) << toHex(txList[i].data());
-	// }
-	// std::cout << "trieRootOver" << expectedRoot  << std::endl;
-	// std::cout << "orderedTrieRoot" << orderedTrieRoot(txs)  << std::endl;
-	// std::cout << "TrieDB" << transactionsTrie.root()  << std::endl;
-	// std::cout << "Contents:"  << std::endl;
-	// for (auto const& t: txs)
-	// 	std::cout << toHex(t)  << std::endl;
-
         delete txRLPStream;
 
 }
