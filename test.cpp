@@ -21,6 +21,34 @@ static std::vector<unsigned char> HexToBytes(const std::string& hex) {
         return bytes;
 }
 
+static void RLPtoStringStream(std::stringstream& _out, dev::RLP const& _d, unsigned _depth = 0) {
+        if (_depth > 64)
+		_out << "<max-depth-reached>";
+	else if (_d.isNull())
+		_out << "null";
+	else if (_d.isInt())
+		_out << std::showbase << std::hex << std::nouppercase << _d.toInt<bigint>(RLP::LaissezFaire) << dec;
+	else if (_d.isData())
+		_out << escaped(_d.toString(), false);
+	else if (_d.isList())
+	{
+		_out << "[";
+		int j = 0;
+		for (auto i: _d)
+		{
+			_out << (j++ ? ", " : " ");
+			RLPtoStringStream(_out, i, _depth + 1);
+		}
+		_out << " ]";
+	}
+}
+
+static std::string RLPtoString(dev::RLP const& _d, unsigned _depth = 0) {
+        std::stringstream _out;
+        RLPtoStringStream(_out, _d, 0);
+        return _out.str();
+}
+
 bool getTransactionProof (const std::string& txHash){
         std::cout << "Received tx hash: " <<  txHash << '\n';
 
@@ -37,18 +65,37 @@ bool getTransactionProof (const std::string& txHash){
 
         bytes* bytedEntireBlock= new bytes(HexToBytes(BLOCK_RLP_STRING));
         dev::RLP* entireBlockRLP = new dev::RLP(bytedEntireBlock);
+        dev::RLP* headerRLPs = new dev::RLP(entireBlockRLP[0][0]);
+        // std::cout << "---------------------------\nheaderRLPs: " << headerRLPs[0] << "\n---------------------------\n" << std::endl;
+
         dev::RLP* transactionRLPs = new dev::RLP(entireBlockRLP[0][1]);
-        std::cout << "---------------------------\ntransactionRLPs: " << transactionRLPs[0] << "---------------------------\n" << std::endl;
+        // std::cout << "---------------------------\ntransactionRLPs: " << transactionRLPs[0] << "\n---------------------------\n" << std::endl;
 
         // Print out the raw bytes
         for (int i = 0; i < transactionRLPs[0].itemCount(); i++ ){
-                std::cout << transactionRLPs[0][i].data().toBytes() << std::endl;
+                // std::cout << transactionRLPs[0][i].data().toBytes() << std::endl;
         }
 
-        auto expectedRoot = trieRootOver(transactionRLPs[0].itemCount(), [&](unsigned i){ return rlp(i); }, [&](unsigned i){ return transactionRLPs[0][i].data().toBytes(); });
-        std::cout << "---------------------------\nExpected Root: " << expectedRoot << "---------------------------\n" << std::endl;
+        auto expectedRootHex = trieRootOver(transactionRLPs[0].itemCount(), [&](unsigned i){ return rlp(i); }, [&](unsigned i){ return transactionRLPs[0][i].data().toBytes(); });
+        std::string expectedRoot = toString(expectedRootHex);
+
+        std::string txRootString = RLPtoString(headerRLPs[0][4]).erase(0,2);
+        transform(txRootString.begin(), txRootString.end(), txRootString.begin(), ::tolower);
+        std::cout << "Tx Root From Header: " << txRootString << std::endl;
+        std::cout << "Expected Root: " << expectedRoot << std::endl;
+
+        bool txRootsMatch = false;
+        if((txRootString.compare(expectedRoot)) == 0){
+                txRootsMatch = true;
+                cout << "Calculated tx root matches the one in the header ." << std::endl;
+        }
+        else{
+                cout << "Calculated tx root does not match the one given in the header. " << std::endl;
+                txRootsMatch = false;
+        }
 
         delete entireBlockRLP;
+        delete headerRLPs;
         delete transactionRLPs;
 
 }
