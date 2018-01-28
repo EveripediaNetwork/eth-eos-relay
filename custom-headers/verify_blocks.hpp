@@ -2,47 +2,8 @@
 #define ETH_PROJECT_VERSION "1"
 #define ETH_COMMIT_HASH "1"
 
-
-// #include <libdevcore/Common.h>
-// #include <libdevcore/Common.cpp>
-// #include <libethcore/Common.h>
-// #include <libethcore/Common.cpp>
-// #include <libdevcore/CommonData.h>
-// #include <libdevcore/CommonData.cpp>
-
-// #include <libdevcrypto/Common.h>
-// #include <libdevcrypto/Common.cpp>
-// #include <libethcore/ICAP.h>
-// #include <libethcore/ICAP.cpp>
-
-// #include <libdevcore/Log.h>
-// #include <libdevcore/Log.cpp>
-// #include <libdevcore/RLP.h>
-// #include <libdevcore/RLP.cpp>
-// #include <libdevcore/SHA3.h>
-// #include <libdevcore/SHA3.cpp>
-
-// #include <libdevcore/FixedHash.h>
-// #include <libdevcore/FixedHash.cpp>
-
-// #include <libdevcore/TrieDB.h>
-// #include <libdevcore/TrieDB.cpp>
-// #include <libdevcore/TrieCommon.h>
-// #include <libdevcore/TrieCommon.cpp>
-// #include <libdevcore/MemoryDB.h>
-// #include <libdevcore/MemoryDB.cpp>
-// #include <libdevcore/TrieHash.h>
-// #include <libdevcore/TrieHash.cpp>
-// #include <libdevcore/Exceptions.h>
-
-// #include <libethcore/BlockHeader.h>
-// #include <libethcore/BlockHeader.cpp>
-
-// using namespace std;
-// using namespace dev;
-// using namespace dev::eth;
-
 #include <libdevcore/Common.h>
+#include <libdevcore/Common.cpp>
 #include <libdevcore/Log.h>
 #include <libdevcore/RLP.cpp>
 #include <libdevcore/TrieDB.h>
@@ -52,6 +13,7 @@
 #include <libethcore/Common.h>
 #include <libdevcore/Exceptions.h>
 #include <libethcore/BlockHeader.h>
+#include <libethcore/BlockHeader.cpp>
 #include <libdevcore/CommonData.cpp>
 #include <libdevcore/TrieHash.cpp>
 #include <libdevcore/TrieCommon.cpp>
@@ -61,9 +23,66 @@
 #include <libdevcore/Log.cpp>
 #include <libdevcore/MemoryDB.h>
 #include <libdevcore/MemoryDB.cpp>
+#include <libethcore/ChainOperationParams.h>
+#include <libethcore/ChainOperationParams.cpp>
+// #include <libethereum/ChainParams.cpp>
+
+
+// #include <libethcore/ChainOperationParams.cpp>
+// #include <libethashseal/EthashClient.cpp>
+// #include <libethashseal/Ethash.cpp>
+// #include <libethash/internal.h>
+// #include <libethashseal/EthashAux.h>
+// #include <libethashseal/EthashAux.cpp>
+// #include <libethashseal/Ethash.h>
+// #include <libethashseal/Ethash.cpp>
+// #include <libethcore/SealEngine.h>
+// #include <libethcore/SealEngine.cpp>
+// #include <libethashseal/EthashProofOfWork.h>
+// #include <libethashseal/EthashProofOfWork.cpp>
 using namespace std;
 using namespace dev;
 using namespace dev::eth;
+
+u256 HOMESTEAD_BLOCK = 1150000;
+u256 BYZANTIUM_BLOCK = 4370000;
+u256 MINIMUM_DIFFICULTY = 0x020000;
+u256 DIFFICULTY_BOUND_DIVISOR = 0x0800;
+u256 DURATION_LIMIT = 0x0d;
+
+
+u256 calculateDifficulty(BlockHeader const& _bi, BlockHeader const& _parent)
+{
+	const unsigned c_expDiffPeriod = 100000;
+
+	if (!_bi.number())
+		throw GenesisBlockCannotBeCalculated();
+	auto minimumDifficulty = MINIMUM_DIFFICULTY;
+	auto difficultyBoundDivisor = DIFFICULTY_BOUND_DIVISOR;
+	auto durationLimit = DURATION_LIMIT;
+
+	bigint target;	// stick to a bigint for the target. Don't want to risk going negative.
+	if (_bi.number() < HOMESTEAD_BLOCK)
+		// Frontier-era difficulty adjustment
+		target = _bi.timestamp() >= _parent.timestamp() + durationLimit ? _parent.difficulty() - (_parent.difficulty() / difficultyBoundDivisor) : (_parent.difficulty() + (_parent.difficulty() / difficultyBoundDivisor));
+	else
+	{
+		bigint const timestampDiff = bigint(_bi.timestamp()) - _parent.timestamp();
+		bigint const adjFactor = _bi.number() < BYZANTIUM_BLOCK ?
+			max<bigint>(1 - timestampDiff / 10, -99) : // Homestead-era difficulty adjustment
+			max<bigint>((_parent.sha3Uncles() ? 2 : 1) - timestampDiff / 9, -99); // Byzantium-era difficulty adjustment
+
+		target = _parent.difficulty() + _parent.difficulty() / 2048 * adjFactor;
+	}
+
+	bigint o = target;
+	unsigned periodCount = unsigned(_parent.number() + 1) / c_expDiffPeriod;
+	if (periodCount > 1)
+		o += (bigint(1) << (periodCount - 2));	// latter will eventually become huge, so ensure it's a bigint.
+
+	o = max<bigint>(minimumDifficulty, o);
+	return u256(min<bigint>(o, std::numeric_limits<u256>::max()));
+}
 
 
 //

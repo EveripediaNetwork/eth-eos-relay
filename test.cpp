@@ -63,12 +63,14 @@ bool getTransactionProof (const std::string& txHash){
         //  2 transactions
         // https://www.etherchain.org/block/4052768
 
-        bytes* bytedEntireBlock= new bytes(HexToBytes(BLOCK_RLP_STRING));
-        dev::RLP* entireBlockRLP = new dev::RLP(bytedEntireBlock);
-        dev::RLP* headerRLPs = new dev::RLP(entireBlockRLP[0][0]);
+        bytes* bytedEntireBlock_4699999 = new bytes(HexToBytes(BLOCK_RLP_STRING_4699999));
+        bytes* bytedEntireBlock_4700000 = new bytes(HexToBytes(BLOCK_RLP_STRING_4700000));
+        // dev::RLP* entireBlockRLP_4699999 = new dev::RLP(*bytedEntireBlock_4699999);
+        dev::RLP* entireBlockRLP_4700000 = new dev::RLP(*bytedEntireBlock_4700000);
+        dev::RLP* headerRLPs = new dev::RLP(entireBlockRLP_4700000[0][0]);
         // std::cout << "---------------------------\nheaderRLPs: " << headerRLPs[0] << "\n---------------------------\n" << std::endl;
 
-        dev::RLP* transactionRLPs = new dev::RLP(entireBlockRLP[0][1]);
+        dev::RLP* transactionRLPs = new dev::RLP(entireBlockRLP_4700000[0][1]);
         // std::cout << "---------------------------\ntransactionRLPs: " << transactionRLPs[0] << "\n---------------------------\n" << std::endl;
 
         // Print out the raw bytes
@@ -87,14 +89,27 @@ bool getTransactionProof (const std::string& txHash){
         bool txRootsMatch = false;
         if((txRootString.compare(expectedRoot)) == 0){
                 txRootsMatch = true;
-                cout << "Calculated tx root matches the one in the header ." << std::endl;
+                cout << "Calculated tx root matches the one in the header." << std::endl;
         }
         else{
                 cout << "Calculated tx root does not match the one given in the header. " << std::endl;
                 txRootsMatch = false;
         }
 
-        delete entireBlockRLP;
+        // dev::eth::BlockHeader* blockHeaderObj_4699999 = new dev::eth::BlockHeader(entireBlockRLP_4699999[0].data().toBytes());
+        dev::eth::BlockHeader* blockHeaderObj_4700000 = new dev::eth::BlockHeader(entireBlockRLP_4700000[0].data().toBytes());
+        // cout << "BYTES_4699999: " << blockHeaderObj_4699999->transactionsRoot() << endl;
+        cout << "Tx Root for 4700000 from its BlockHeader Object: " << blockHeaderObj_4700000->transactionsRoot() << endl;
+
+        // cout << "BYTES: " << blockHeaderObj->transactionsRoot() << endl;
+
+
+
+
+        // delete bytedEntireBlock_4699999;
+        delete bytedEntireBlock_4700000;
+        // delete entireBlockRLP_4699999;
+        delete entireBlockRLP_4700000;
         delete headerRLPs;
         delete transactionRLPs;
 

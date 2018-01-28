@@ -31,6 +31,7 @@ using namespace std;
 using namespace dev;
 using namespace dev::eth;
 
+
 BlockHeader::BlockHeader()
 {
 }
