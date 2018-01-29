@@ -103,7 +103,7 @@ bool getTransactionProof (const std::string& txHash){
         cout << "Tx Root for 4700000 from its BlockHeader Object: " << blockHeaderObj_4700000->transactionsRoot() << endl;
 
         u256 result = calculateDifficulty(*blockHeaderObj_4700000, *blockHeaderObj_4699999);
-        std::cout << "|||||||||||| " << result << " |||||||||||| " << std::endl;
+        std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result << " |||||||||||| " << std::endl;
 
         delete bytedEntireBlock_4699999;
         delete bytedEntireBlock_4700000;
