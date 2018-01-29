@@ -26,7 +26,8 @@
 #include <libethcore/ChainOperationParams.h>
 #include <libethcore/ChainOperationParams.cpp>
 // #include <libethereum/ChainParams.cpp>
-
+// #include <libethashseal/Ethash.h>
+// #include <libethashseal/Ethash.cpp>
 
 // #include <libethcore/ChainOperationParams.cpp>
 // #include <libethashseal/EthashClient.cpp>
@@ -34,8 +35,7 @@
 // #include <libethash/internal.h>
 // #include <libethashseal/EthashAux.h>
 // #include <libethashseal/EthashAux.cpp>
-// #include <libethashseal/Ethash.h>
-// #include <libethashseal/Ethash.cpp>
+
 // #include <libethcore/SealEngine.h>
 // #include <libethcore/SealEngine.cpp>
 // #include <libethashseal/EthashProofOfWork.h>
@@ -45,13 +45,19 @@ using namespace dev;
 using namespace dev::eth;
 
 u256 HOMESTEAD_BLOCK = 0x118c30;
+u256 DAO_BLOCK = 0x1d4c00;
 u256 BYZANTIUM_BLOCK = 0x42ae50;
 u256 MINIMUM_DIFFICULTY = 0x020000;
 u256 DIFFICULTY_BOUND_DIVISOR = 0x0800;
 u256 DURATION_LIMIT = 0x0d;
+u256 MIN_GAS_LIMIT = 0x1388;
+u256 MAX_GAS_LIMIT = 0x7fffffffffffffff;
+u256 GAS_LIMIT_BOUND_DIVISOR = 0x0400;
+u256 MAXIMUM_EXTRA_DATA_SIZE = 0x20;
 
 
-u256 calculateDifficulty(BlockHeader const& _bi, BlockHeader const& _parent)
+
+u256 calculateDifficultyCustom(BlockHeader const& _bi, BlockHeader const& _parent)
 {
 	const unsigned c_expDiffPeriod = 100000;
 
@@ -94,69 +100,3 @@ u256 calculateDifficulty(BlockHeader const& _bi, BlockHeader const& _parent)
 	o = max<bigint>(minimumDifficulty, o);
 	return u256(min<bigint>(o, std::numeric_limits<u256>::max()));
 }
-
-
-//
-// void BlockHeader::verify(Strictness _s, BlockHeader const& _parent, bytesConstRef _block) const
-// {
-// 	if (m_number > ~(unsigned)0)
-// 		BOOST_THROW_EXCEPTION(InvalidNumber());
-//
-// 	if (_s != CheckNothingNew && m_gasUsed > m_gasLimit)
-// 		BOOST_THROW_EXCEPTION(TooMuchGasUsed() << RequirementError(bigint(m_gasLimit), bigint(m_gasUsed)));
-//
-// 	if (_parent)
-// 	{
-// 		if (m_parentHash && _parent.hash() != m_parentHash)
-// 			BOOST_THROW_EXCEPTION(InvalidParentHash());
-//
-// 		if (m_timestamp <= _parent.m_timestamp)
-// 			BOOST_THROW_EXCEPTION(InvalidTimestamp());
-//
-// 		if (m_number != _parent.m_number + 1)
-// 			BOOST_THROW_EXCEPTION(InvalidNumber());
-// 	}
-//
-// 	if (_block)
-// 	{
-// 		RLP root(_block);
-//
-//                 //  this needs to be a list of all the RLPs  of all the transactions
-// 		auto txList = root[1];
-//
-//
-// 		auto expectedRoot = trieRootOver(txList.itemCount(), [&](unsigned i){ return rlp(i); }, [&](unsigned i){ return txList[i].data().toBytes(); });
-//
-// 		clog(BlockInfoDiagnosticsChannel) << "Expected trie root:" << toString(expectedRoot);
-// 		if (m_transactionsRoot != expectedRoot)
-// 		{
-// 			MemoryDB tm;
-// 			GenericTrieDB<MemoryDB> transactionsTrie(&tm);
-// 			transactionsTrie.init();
-//
-// 			vector<bytesConstRef> txs;
-//
-// 			for (unsigned i = 0; i < txList.itemCount(); ++i)
-// 			{
-// 				RLPStream k;
-// 				k << i;
-//
-// 				transactionsTrie.insert(&k.out(), txList[i].data());
-//
-// 				txs.push_back(txList[i].data());
-// 				cdebug << toHex(k.out()) << toHex(txList[i].data());
-// 			}
-// 			cdebug << "trieRootOver" << expectedRoot;
-// 			cdebug << "orderedTrieRoot" << orderedTrieRoot(txs);
-// 			cdebug << "TrieDB" << transactionsTrie.root();
-// 			cdebug << "Contents:";
-// 			for (auto const& t: txs)
-// 				cdebug << toHex(t);
-//
-// 			BOOST_THROW_EXCEPTION(InvalidTransactionsRoot() << Hash256RequirementError(expectedRoot, m_transactionsRoot));
-// 		}
-// 		clog(BlockInfoDiagnosticsChannel) << "Expected uncle hash:" << toString(sha3(root[2].data()));
-// 		if (m_sha3Uncles != sha3(root[2].data()))
-// 			BOOST_THROW_EXCEPTION(InvalidUnclesHash() << Hash256RequirementError(sha3(root[2].data()), m_sha3Uncles));
-// 	}
-// }

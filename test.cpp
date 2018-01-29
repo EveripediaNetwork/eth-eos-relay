@@ -4,6 +4,7 @@
 #include "custom-headers/json.hpp"
 #include "custom-headers/constants.hpp"
 #include "custom-headers/verify_blocks.hpp"
+#include "custom-headers/ethash_verify_custom.hpp"
 #include <list>
 #include <vector>
 
@@ -102,8 +103,13 @@ bool getTransactionProof (const std::string& txHash){
         cout << "Tx Root for 4699999 from its BlockHeader Object: " << blockHeaderObj_4699999->transactionsRoot() << endl;
         cout << "Tx Root for 4700000 from its BlockHeader Object: " << blockHeaderObj_4700000->transactionsRoot() << endl;
 
-        u256 result = calculateDifficulty(*blockHeaderObj_4700000, *blockHeaderObj_4699999);
+        u256 result = calculateDifficultyCustom(*blockHeaderObj_4700000, *blockHeaderObj_4699999);
         std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result << " |||||||||||| " << std::endl;
+
+
+        blockHeaderObj_4700000->verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4699999, entireBlockRLP_4700000->toBytesConstRef());
+        std::cout << "BLOCK HEADER VERIFIED" << std::endl;
+
 
         delete bytedEntireBlock_4699999;
         delete bytedEntireBlock_4700000;
