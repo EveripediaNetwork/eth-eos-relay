@@ -1,16 +1,16 @@
 /*
  This file is part of cpp-ethereum.
- 
+
  cpp-ethereum is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
- 
+
  cpp-ethereum is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with cpp-ethereum.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -28,7 +28,7 @@
 #include "RLPxHandshake.h"
 #include "RLPXPacket.h"
 
-static_assert(CRYPTOPP_VERSION == 570, "Wrong Crypto++ version");
+// static_assert(CRYPTOPP_VERSION == 570, "Wrong Crypto++ version");
 
 using namespace std;
 using namespace dev;
@@ -105,10 +105,10 @@ void RLPXFrameCoder::setup(bool _originated, h512 const& _remoteEphemeral, h256 
 	rightNonce.ref().copyTo(nonceMaterial.ref().cropped(h256::size, h256::size));
 	auto outRef(keyMaterial.cropped(h256::size, h256::size));
 	sha3(nonceMaterial.ref(), outRef); // output h(nonces)
-	
+
 	sha3(keyMaterial, outRef); // output shared-secret
 	// token: sha3(outRef, bytesRef(&token)); -> m_host (to be saved to disk)
-	
+
 	// aes-secret = sha3(ecdhe-shared-secret || shared-secret)
 	sha3(keyMaterial, outRef); // output aes-secret
 	m_impl->frameEncKey.resize(h256::size);
@@ -129,7 +129,7 @@ void RLPXFrameCoder::setup(bool _originated, h512 const& _remoteEphemeral, h256 
 	//           ingress-mac: sha3(mac-secret^initiator-nonce || auth-recvd-ack)
 	// Recipient egress-mac: sha3(mac-secret^initiator-nonce || auth-sent-ack)
 	//           ingress-mac: sha3(mac-secret^recipient-nonce || auth-recvd-init)
- 
+
 	(*(h256*)outRef.data() ^ _remoteNonce).ref().copyTo(keyMaterial);
 	bytesConstRef egressCipher = _originated ? _authCipher : _ackCipher;
 	keyMaterialBytes.resize(h256::size + egressCipher.size());

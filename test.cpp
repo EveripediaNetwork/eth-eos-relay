@@ -4,7 +4,7 @@
 #include "custom-headers/json.hpp"
 #include "custom-headers/constants.hpp"
 #include "custom-headers/verify_blocks.hpp"
-#include "custom-headers/ethash_verify_custom.hpp"
+// #include "custom-headers/ethash_verify_custom.hpp"
 #include <list>
 #include <vector>
 

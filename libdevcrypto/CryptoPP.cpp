@@ -1,16 +1,16 @@
 /*
  This file is part of cpp-ethereum.
- 
+
  cpp-ethereum is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
- 
+
  cpp-ethereum is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with cpp-ethereum.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -28,7 +28,7 @@
 #include <libdevcore/SHA3.h>
 #include "ECDHE.h"
 
-static_assert(CRYPTOPP_VERSION == 570, "Wrong Crypto++ version");
+// static_assert(CRYPTOPP_VERSION == 570, "Wrong Crypto++ version");
 
 using namespace std;
 using namespace dev;
@@ -112,14 +112,14 @@ void Secp256k1PP::encryptECIES(Public const& _k, bytesConstRef _sharedMacData, b
 	iv.ref().copyTo(bytesRef(&msg).cropped(1 + Public::size, h128::size));
 	bytesRef msgCipherRef = bytesRef(&msg).cropped(1 + Public::size + h128::size, cipherText.size());
 	bytesConstRef(&cipherText).copyTo(msgCipherRef);
-	
+
 	// tag message
 	CryptoPP::HMAC<SHA256> hmacctx(mKey.data(), mKey.size());
 	bytesConstRef cipherWithIV = bytesRef(&msg).cropped(1 + Public::size, h128::size + cipherText.size());
 	hmacctx.Update(cipherWithIV.data(), cipherWithIV.size());
 	hmacctx.Update(_sharedMacData.data(), _sharedMacData.size());
 	hmacctx.Final(msg.data() + 1 + Public::size + cipherWithIV.size());
-	
+
 	io_cipher.resize(msg.size());
 	io_cipher.swap(msg);
 }
@@ -133,12 +133,12 @@ bool Secp256k1PP::decryptECIES(Secret const& _k, bytesConstRef _sharedMacData, b
 {
 
 	// interop w/go ecies implementation
-	
+
 	// io_cipher[0] must be 2, 3, or 4, else invalidpublickey
 	if (io_text.empty() || io_text[0] < 2 || io_text[0] > 4)
 		// invalid message: publickey
 		return false;
-	
+
 	if (io_text.size() < (1 + Public::size + h128::size + 1 + h256::size))
 		// invalid message: length
 		return false;
@@ -152,7 +152,7 @@ bool Secp256k1PP::decryptECIES(Secret const& _k, bytesConstRef _sharedMacData, b
 	CryptoPP::SHA256 ctx;
 	ctx.Update(mKeyMaterial.data(), mKeyMaterial.size());
 	ctx.Final(mKey.data());
-	
+
 	bytes plain;
 	size_t cipherLen = io_text.size() - 1 - Public::size - h128::size - h256::size;
 	bytesConstRef cipherWithIV(io_text.data() + 1 + Public::size, h128::size + cipherLen);
@@ -160,7 +160,7 @@ bool Secp256k1PP::decryptECIES(Secret const& _k, bytesConstRef _sharedMacData, b
 	bytesConstRef cipherNoIV = cipherWithIV.cropped(h128::size, cipherLen);
 	bytesConstRef msgMac(cipherNoIV.data() + cipherLen, h256::size);
 	h128 iv(cipherIV.toBytes());
-	
+
 	// verify tag
 	CryptoPP::HMAC<SHA256> hmacctx(mKey.data(), mKey.size());
 	hmacctx.Update(cipherWithIV.data(), cipherWithIV.size());
@@ -170,11 +170,11 @@ bool Secp256k1PP::decryptECIES(Secret const& _k, bytesConstRef _sharedMacData, b
 	for (unsigned i = 0; i < h256::size; i++)
 		if (mac[i] != msgMac[i])
 			return false;
-	
+
 	plain = decryptSymNoAuth(SecureFixedHash<16>(eKey), iv, cipherNoIV).makeInsecure();
 	io_text.resize(plain.size());
 	io_text.swap(plain);
-	
+
 	return true;
 }
 
@@ -190,12 +190,12 @@ void Secp256k1PP::encrypt(Public const& _k, bytes& io_cipher)
 	size_t plen = io_cipher.size();
 	bytes ciphertext;
 	ciphertext.resize(e.CiphertextLength(plen));
-	
+
 	{
 		Guard l(ctx.x_rng);
 		e.Encrypt(ctx.m_rng, io_cipher.data(), plen, ciphertext.data());
 	}
-	
+
 	memset(io_cipher.data(), 0, io_cipher.size());
 	io_cipher = std::move(ciphertext);
 }
@@ -214,23 +214,23 @@ void Secp256k1PP::decrypt(Secret const& _k, bytes& io_text)
 		io_text.resize(1);
 		io_text[0] = 0;
 	}
-	
+
 	size_t clen = io_text.size();
 	bytes plain;
 	plain.resize(d.MaxPlaintextLength(io_text.size()));
-	
+
 	DecodingResult r;
 	{
 		Guard l(ctx.x_rng);
 		r = d.Decrypt(ctx.m_rng, io_text.data(), clen, plain.data());
 	}
-	
+
 	if (!r.isValidCoding)
 	{
 		io_text.clear();
 		return;
 	}
-	
+
 	io_text.resize(r.messageLength);
 	io_text = std::move(plain);
 }

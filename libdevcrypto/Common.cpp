@@ -23,6 +23,11 @@
 #include <libdevcore/Guards.h>  // <boost/thread> conflicts with <thread>
 #include "Common.h"
 #include <secp256k1/secp256k1.h>
+#include <secp256k1/hash.h>
+#include <secp256k1/hash_impl.h>
+#include <secp256k1/ext.h>
+#include <secp256k1/ext.c>
+#include <secp256k1/main_impl.h>
 #include <secp256k1/secp256k1_ecdh.h>
 #include <secp256k1/secp256k1_recovery.h>
 #include <secp256k1/secp256k1_sha256.h>
@@ -159,7 +164,7 @@ bool dev::decryptSym(Secret const& _k, bytesConstRef _cipher, bytes& o_plain)
 
 std::pair<bytes, h128> dev::encryptSymNoAuth(SecureFixedHash<16> const& _k, bytesConstRef _plain)
 {
-	h128 iv(Nonce::get().makeInsecure());
+	h128 iv(dev::crypto::Nonce::get().makeInsecure());
 	return make_pair(encryptSymNoAuth(_k, iv, _plain), iv);
 }
 
@@ -231,7 +236,7 @@ Public dev::recover(Signature const& _sig, h256 const& _message)
 	return Public{&serializedPubkey[1], Public::ConstructFromPointer};
 }
 
-static const u256 c_secp256k1n("115792089237316195423570985008687907852837564279074904382605163141518161494337");
+static const u256 c_secp256k1nDUPE("115792089237316195423570985008687907852837564279074904382605163141518161494337");
 
 Signature dev::sign(Secret const& _k, h256 const& _hash)
 {
@@ -246,12 +251,12 @@ Signature dev::sign(Secret const& _k, h256 const& _hash)
 
 	SignatureStruct& ss = *reinterpret_cast<SignatureStruct*>(&s);
 	ss.v = static_cast<byte>(v);
-	if (ss.s > c_secp256k1n / 2)
+	if (ss.s > c_secp256k1nDUPE / 2)
 	{
 		ss.v = static_cast<byte>(ss.v ^ 1);
-		ss.s = h256(c_secp256k1n - u256(ss.s));
+		ss.s = h256(c_secp256k1nDUPE - u256(ss.s));
 	}
-	assert(ss.s <= c_secp256k1n / 2);
+	assert(ss.s <= c_secp256k1nDUPE / 2);
 	return s;
 }
 
@@ -335,7 +340,7 @@ h256 crypto::kdf(Secret const& _priv, h256 const& _hash)
 	return s;
 }
 
-Secret Nonce::next()
+Secret dev::crypto::Nonce::next()
 {
 	Guard l(x_value);
 	if (!m_value)
@@ -371,7 +376,7 @@ bytes ecies::kdf(Secret const& _z, bytes const& _s1, unsigned kdByteLen)
 	// the 4 bytes is okay. NIST specifies 4 bytes.
 	std::array<byte, 4> ctr{{0, 0, 0, 1}};
 	bytes k;
-	secp256k1_sha256_t ctx;
+	secp256k1_sha256 ctx;
 	for (unsigned i = 0; i <= reps; i++)
 	{
 		secp256k1_sha256_initialize(&ctx);

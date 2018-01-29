@@ -25,21 +25,37 @@
 #include <libdevcore/MemoryDB.cpp>
 #include <libethcore/ChainOperationParams.h>
 #include <libethcore/ChainOperationParams.cpp>
-// #include <libethereum/ChainParams.cpp>
-// #include <libethashseal/Ethash.h>
-// #include <libethashseal/Ethash.cpp>
 
-// #include <libethcore/ChainOperationParams.cpp>
-// #include <libethashseal/EthashClient.cpp>
-// #include <libethashseal/Ethash.cpp>
-// #include <libethash/internal.h>
-// #include <libethashseal/EthashAux.h>
-// #include <libethashseal/EthashAux.cpp>
+#include <libdevcore/Worker.h>
+#include <libdevcore/Worker.cpp>
+#include <libdevcore/FixedHash.cpp>
+#include <libdevcrypto/Common.h>
+#include <libdevcrypto/Common.cpp>
+#include <libdevcrypto/CryptoPP.h>
+#include <libdevcrypto/CryptoPP.cpp>
+#include <libdevcrypto/AES.h>
+#include <libdevcrypto/AES.cpp>
+#include <libethash/Ethash.h>
+#include <libethash/sha3.h>
+#include <libethash/sha3.c>
+#include <libethashseal/Ethash.h>
+#include <libethashseal/Ethash.cpp>
+#include <libethcore/SealEngine.h>
+#include <libethcore/SealEngine.cpp>
+#include <libethashseal/EthashAux.h>
+#include <libethashseal/EthashAux.cpp>
+#include <libethashseal/EthashCPUMiner.h>
+#include <libethashseal/EthashCPUMiner.cpp>
+#include <libethcore/Transaction.h>
+#include <libethcore/Transaction.cpp>
+#include <libethashseal/EthashProofOfWork.h>
+#include <libethashseal/EthashProofOfWork.cpp>
+#include <libethash/internal.h>
+#include <libethash/internal.c>
+#include <libethash/io.h>
+#include <libethash/io.c>
+#include <libethash/io_posix.c>
 
-// #include <libethcore/SealEngine.h>
-// #include <libethcore/SealEngine.cpp>
-// #include <libethashseal/EthashProofOfWork.h>
-// #include <libethashseal/EthashProofOfWork.cpp>
 using namespace std;
 using namespace dev;
 using namespace dev::eth;
