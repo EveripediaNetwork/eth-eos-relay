@@ -44,8 +44,8 @@ using namespace std;
 using namespace dev;
 using namespace dev::eth;
 
-u256 HOMESTEAD_BLOCK = 1150000;
-u256 BYZANTIUM_BLOCK = 4370000;
+u256 HOMESTEAD_BLOCK = 0x118c30;
+u256 BYZANTIUM_BLOCK = 0x42ae50;
 u256 MINIMUM_DIFFICULTY = 0x020000;
 u256 DIFFICULTY_BOUND_DIVISOR = 0x0800;
 u256 DURATION_LIMIT = 0x0d;
@@ -57,9 +57,9 @@ u256 calculateDifficulty(BlockHeader const& _bi, BlockHeader const& _parent)
 
 	if (!_bi.number())
 		throw GenesisBlockCannotBeCalculated();
-	auto minimumDifficulty = MINIMUM_DIFFICULTY;
-	auto difficultyBoundDivisor = DIFFICULTY_BOUND_DIVISOR;
-	auto durationLimit = DURATION_LIMIT;
+	auto const& minimumDifficulty = MINIMUM_DIFFICULTY;
+	auto const& difficultyBoundDivisor = DIFFICULTY_BOUND_DIVISOR;
+	auto const& durationLimit = DURATION_LIMIT;
 
 	bigint target;	// stick to a bigint for the target. Don't want to risk going negative.
 	if (_bi.number() < HOMESTEAD_BLOCK)
@@ -70,13 +70,24 @@ u256 calculateDifficulty(BlockHeader const& _bi, BlockHeader const& _parent)
 		bigint const timestampDiff = bigint(_bi.timestamp()) - _parent.timestamp();
 		bigint const adjFactor = _bi.number() < BYZANTIUM_BLOCK ?
 			max<bigint>(1 - timestampDiff / 10, -99) : // Homestead-era difficulty adjustment
-			max<bigint>((_parent.sha3Uncles() ? 2 : 1) - timestampDiff / 9, -99); // Byzantium-era difficulty adjustment
+			max<bigint>((_parent.hasUncles() ? 2 : 1) - timestampDiff / 9, -99); // Byzantium-era difficulty adjustment
 
 		target = _parent.difficulty() + _parent.difficulty() / 2048 * adjFactor;
 	}
 
 	bigint o = target;
-	unsigned periodCount = unsigned(_parent.number() + 1) / c_expDiffPeriod;
+	unsigned exponentialIceAgeBlockNumber = unsigned(_parent.number() + 1);
+
+	// EIP-649 modifies exponentialIceAgeBlockNumber
+	if (_bi.number() >= BYZANTIUM_BLOCK)
+	{
+		if (exponentialIceAgeBlockNumber >= 3000000)
+			exponentialIceAgeBlockNumber -= 3000000;
+		else
+			exponentialIceAgeBlockNumber = 0;
+	}
+
+	unsigned periodCount = exponentialIceAgeBlockNumber / c_expDiffPeriod;
 	if (periodCount > 1)
 		o += (bigint(1) << (periodCount - 2));	// latter will eventually become huge, so ensure it's a bigint.
 
