@@ -1,12 +1,4 @@
-#include <iostream>
-#include <string>
-#include <typeinfo>
-#include "custom-headers/json.hpp"
-#include "custom-headers/constants.hpp"
-#include "custom-headers/verify_blocks.hpp"
-// #include "custom-headers/ethash_verify_custom.hpp"
-#include <list>
-#include <vector>
+#include "core_imports.cpp"
 
 using json = nlohmann::json;
 
@@ -106,11 +98,19 @@ bool getTransactionProof (const std::string& txHash){
         u256 result = calculateDifficultyCustom(*blockHeaderObj_4700000, *blockHeaderObj_4699999);
         std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result << " |||||||||||| " << std::endl;
 
+        bytesConstRef* bytesConstRef4700000 = new bytesConstRef(entireBlockRLP_4700000->toBytesConstRef());
 
-        blockHeaderObj_4700000->verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4699999, entireBlockRLP_4700000->toBytesConstRef());
+        blockHeaderObj_4700000->verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4699999, *bytesConstRef4700000);
         std::cout << "BLOCK HEADER VERIFIED" << std::endl;
 
+        dev::eth::Ethash* quickEthHash = new dev::eth::Ethash();
+        u256 result2 = quickEthHash->calculateDifficulty( *blockHeaderObj_4700000, *blockHeaderObj_4699999);
+        std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result2 << " |||||||||||| " << std::endl;
+        std::cout << "BLOCK HEADER VERIFIED (non-custom method)" << std::endl;
+        // quickEthHash->verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4700000, *blockHeaderObj_4699999, *bytesConstRef4700000);
 
+        delete quickEthHash;
+        delete bytesConstRef4700000;
         delete bytedEntireBlock_4699999;
         delete bytedEntireBlock_4700000;
         delete entireBlockRLP_4699999;

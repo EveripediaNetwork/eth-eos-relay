@@ -77,6 +77,7 @@ void Ethash::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _p
 {
 	SealEngineFace::verify(_s, _bi, _parent, _block);
 
+
 	if (_s != CheckNothingNew)
 	{
 		if (_bi.difficulty() < chainParams().u256Param("minimumDifficulty"))

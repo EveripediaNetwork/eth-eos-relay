@@ -1,6 +1,11 @@
 #pragma once
 #define ETH_PROJECT_VERSION "1"
 #define ETH_COMMIT_HASH "1"
+#include <iostream>
+#include <string>
+#include <typeinfo>
+#include "custom-headers/json.hpp"
+#include "custom-headers/constants.hpp"
 
 #include <libdevcore/Common.h>
 #include <libdevcore/Common.cpp>
@@ -55,6 +60,9 @@
 #include <libethash/io.h>
 #include <libethash/io.c>
 #include <libethash/io_posix.c>
+
+#include <list>
+#include <vector>
 
 using namespace std;
 using namespace dev;
