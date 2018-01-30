@@ -1,4 +1,5 @@
 #include "core_imports.cpp"
+#include "custom-headers/ethash_calculate_difficulty_custom.hpp"
 
 using json = nlohmann::json;
 
@@ -107,7 +108,7 @@ bool getTransactionProof (const std::string& txHash){
         u256 result2 = quickEthHash->calculateDifficulty( *blockHeaderObj_4700000, *blockHeaderObj_4699999);
         std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result2 << " |||||||||||| " << std::endl;
         std::cout << "BLOCK HEADER VERIFIED (non-custom method)" << std::endl;
-        // quickEthHash->verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4700000, *blockHeaderObj_4699999, *bytesConstRef4700000);
+        quickEthHash->verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4700000, *blockHeaderObj_4699999, *bytesConstRef4700000);
 
         delete quickEthHash;
         delete bytesConstRef4700000;

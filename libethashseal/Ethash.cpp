@@ -23,12 +23,14 @@
 #include <libethash/ethash.h>
 #include <libethash/internal.h>
 #include <libethereum/Interface.h>
+#include <libethashseal/EthashProofOfWork.h>
 #include <libethcore/ChainOperationParams.h>
 #include <libethcore/CommonJS.h>
 #include "EthashCPUMiner.h"
 using namespace std;
 using namespace dev;
 using namespace eth;
+using namespace dev::eth;
 
 void Ethash::init()
 {
@@ -77,22 +79,21 @@ void Ethash::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _p
 {
 	SealEngineFace::verify(_s, _bi, _parent, _block);
 
-
 	if (_s != CheckNothingNew)
 	{
-		if (_bi.difficulty() < chainParams().u256Param("minimumDifficulty"))
-			BOOST_THROW_EXCEPTION(InvalidDifficulty() << RequirementError(bigint(chainParams().u256Param("minimumDifficulty")), bigint(_bi.difficulty())) );
+		if (_bi.difficulty() < MINIMUM_DIFFICULTY)
+			BOOST_THROW_EXCEPTION(InvalidDifficulty() << RequirementError(bigint(MINIMUM_DIFFICULTY), bigint(_bi.difficulty())) );
 
-		if (_bi.gasLimit() < chainParams().u256Param("minGasLimit"))
-			BOOST_THROW_EXCEPTION(InvalidGasLimit() << RequirementError(bigint(chainParams().u256Param("minGasLimit")), bigint(_bi.gasLimit())) );
+		if (_bi.gasLimit() < MIN_GAS_LIMIT)
+			BOOST_THROW_EXCEPTION(InvalidGasLimit() << RequirementError(bigint(MIN_GAS_LIMIT), bigint(_bi.gasLimit())) );
 
-		if (_bi.gasLimit() > chainParams().u256Param("maxGasLimit"))
-			BOOST_THROW_EXCEPTION(InvalidGasLimit() << RequirementError(bigint(chainParams().u256Param("maxGasLimit")), bigint(_bi.gasLimit())) );
+		if (_bi.gasLimit() > MAX_GAS_LIMIT)
+			BOOST_THROW_EXCEPTION(InvalidGasLimit() << RequirementError(bigint(MAX_GAS_LIMIT), bigint(_bi.gasLimit())) );
 
-		if (_bi.number() && _bi.extraData().size() > chainParams().maximumExtraDataSize)
-			BOOST_THROW_EXCEPTION(ExtraDataTooBig() << RequirementError(bigint(chainParams().maximumExtraDataSize), bigint(_bi.extraData().size())) << errinfo_extraData(_bi.extraData()));
+		if (_bi.number() && _bi.extraData().size() > MAXIMUM_EXTRA_DATA_SIZE)
+			BOOST_THROW_EXCEPTION(ExtraDataTooBig() << RequirementError(bigint(MAXIMUM_EXTRA_DATA_SIZE), bigint(_bi.extraData().size())) << errinfo_extraData(_bi.extraData()));
 
-		u256 daoHardfork = chainParams().u256Param("daoHardforkBlock");
+		u256 const& daoHardfork = DAO_BLOCK;
 		if (daoHardfork != 0 && daoHardfork + 9 >= daoHardfork && _bi.number() >= daoHardfork && _bi.number() <= daoHardfork + 9)
 			if (_bi.extraData() != fromHex("0x64616f2d686172642d666f726b"))
 				BOOST_THROW_EXCEPTION(ExtraDataIncorrect() << errinfo_comment("Received block from the wrong fork (invalid extradata)."));
@@ -109,22 +110,24 @@ void Ethash::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _p
 		auto gasLimit = _bi.gasLimit();
 		auto parentGasLimit = _parent.gasLimit();
 		if (
-			gasLimit < chainParams().u256Param("minGasLimit") ||
-			gasLimit > chainParams().u256Param("maxGasLimit") ||
-			gasLimit <= parentGasLimit - parentGasLimit / chainParams().u256Param("gasLimitBoundDivisor") ||
-			gasLimit >= parentGasLimit + parentGasLimit / chainParams().u256Param("gasLimitBoundDivisor"))
+			gasLimit < MIN_GAS_LIMIT ||
+			gasLimit > MAX_GAS_LIMIT ||
+			gasLimit <= parentGasLimit - parentGasLimit / GAS_LIMIT_BOUND_DIVISOR ||
+			gasLimit >= parentGasLimit + parentGasLimit / GAS_LIMIT_BOUND_DIVISOR)
 			BOOST_THROW_EXCEPTION(
 				InvalidGasLimit()
-				<< errinfo_min((bigint)((bigint)parentGasLimit - (bigint)(parentGasLimit / chainParams().u256Param("gasLimitBoundDivisor"))))
+				<< errinfo_min((bigint)((bigint)parentGasLimit - (bigint)(parentGasLimit / GAS_LIMIT_BOUND_DIVISOR)))
 				<< errinfo_got((bigint)gasLimit)
-				<< errinfo_max((bigint)((bigint)parentGasLimit + parentGasLimit / chainParams().u256Param("gasLimitBoundDivisor")))
+				<< errinfo_max((bigint)((bigint)parentGasLimit + parentGasLimit / GAS_LIMIT_BOUND_DIVISOR))
 			);
 	}
 
 	// check it hashes according to proof of work or that it's the genesis block.
 	if (_s == CheckEverything && _bi.parentHash() && !verifySeal(_bi))
 	{
+		std::cout << "STARTING PROOF OF WORK HASHING (CheckEverything)" << std::endl;
 		InvalidBlockNonce ex;
+		ex << errinfo_nonce(nonce(_bi));
 		ex << errinfo_nonce(nonce(_bi));
 		ex << errinfo_mixHash(mixHash(_bi));
 		ex << errinfo_seedHash(seedHash(_bi));
@@ -137,12 +140,16 @@ void Ethash::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _p
 	}
 	else if (_s == QuickNonce && _bi.parentHash() && !quickVerifySeal(_bi))
 	{
+		std::cout << "STARTING PROOF OF WORK (QuickNonce)..." << std::endl;
 		InvalidBlockNonce ex;
-		ex << errinfo_hash256(_bi.hash(WithoutSeal));
+		auto quickHash = _bi.hash(WithoutSeal);
+		std::cout << quickHash << std::endl;
+		ex << errinfo_hash256(quickHash);
 		ex << errinfo_difficulty(_bi.difficulty());
 		ex << errinfo_nonce(nonce(_bi));
 		BOOST_THROW_EXCEPTION(ex);
 	}
+	std::cout << "FINISHED" << std::endl;
 }
 
 void Ethash::verifyTransaction(ImportRequirements::value _ir, TransactionBase const& _t, BlockHeader const& _bi) const
@@ -186,20 +193,37 @@ u256 Ethash::calculateDifficulty(BlockHeader const& _bi, BlockHeader const& _par
 
 	if (!_bi.number())
 		throw GenesisBlockCannotBeCalculated();
-	auto minimumDifficulty = chainParams().u256Param("minimumDifficulty");
-	auto difficultyBoundDivisor = chainParams().u256Param("difficultyBoundDivisor");
-	auto durationLimit = chainParams().u256Param("durationLimit");
+	auto const& minimumDifficulty = MINIMUM_DIFFICULTY;
+	auto const& difficultyBoundDivisor = DIFFICULTY_BOUND_DIVISOR;
+	auto const& durationLimit = DURATION_LIMIT;
 
 	bigint target;	// stick to a bigint for the target. Don't want to risk going negative.
-	if (_bi.number() < chainParams().u256Param("homsteadForkBlock"))
+	if (_bi.number() < HOMESTEAD_BLOCK)
 		// Frontier-era difficulty adjustment
 		target = _bi.timestamp() >= _parent.timestamp() + durationLimit ? _parent.difficulty() - (_parent.difficulty() / difficultyBoundDivisor) : (_parent.difficulty() + (_parent.difficulty() / difficultyBoundDivisor));
 	else
-		// Homestead-era difficulty adjustment
-		target = _parent.difficulty() + _parent.difficulty() / 2048 * max<bigint>(1 - (bigint(_bi.timestamp()) - _parent.timestamp()) / 10, -99);
+	{
+		bigint const timestampDiff = bigint(_bi.timestamp()) - _parent.timestamp();
+		bigint const adjFactor = _bi.number() < BYZANTIUM_BLOCK ?
+			max<bigint>(1 - timestampDiff / 10, -99) : // Homestead-era difficulty adjustment
+			max<bigint>((_parent.hasUncles() ? 2 : 1) - timestampDiff / 9, -99); // Byzantium-era difficulty adjustment
+
+		target = _parent.difficulty() + _parent.difficulty() / 2048 * adjFactor;
+	}
 
 	bigint o = target;
-	unsigned periodCount = unsigned(_parent.number() + 1) / c_expDiffPeriod;
+	unsigned exponentialIceAgeBlockNumber = unsigned(_parent.number() + 1);
+
+	// EIP-649 modifies exponentialIceAgeBlockNumber
+	if (_bi.number() >= BYZANTIUM_BLOCK)
+	{
+		if (exponentialIceAgeBlockNumber >= 3000000)
+			exponentialIceAgeBlockNumber -= 3000000;
+		else
+			exponentialIceAgeBlockNumber = 0;
+	}
+
+	unsigned periodCount = exponentialIceAgeBlockNumber / c_expDiffPeriod;
 	if (periodCount > 1)
 		o += (bigint(1) << (periodCount - 2));	// latter will eventually become huge, so ensure it's a bigint.
 
@@ -216,6 +240,7 @@ void Ethash::populateFromParent(BlockHeader& _bi, BlockHeader const& _parent) co
 
 bool Ethash::quickVerifySeal(BlockHeader const& _bi) const
 {
+	std::cout << "QUICK VERIFY SEAL REACHED" << std::endl;
 	if (_bi.number() >= ETHASH_EPOCH_LENGTH * 2048)
 		return false;
 
@@ -228,12 +253,17 @@ bool Ethash::quickVerifySeal(BlockHeader const& _bi) const
 		(uint64_t)(u64)n,
 		(ethash_h256_t const*)m.data(),
 		(ethash_h256_t const*)b.data());
+	std::cout << "QUICK VERIFY SEAL DONE: " << ret << std::endl;
 	return ret;
 }
 
 bool Ethash::verifySeal(BlockHeader const& _bi) const
 {
+	std::cout << "VERIFY SEAL REACHED" << std::endl;
 	bool pre = quickVerifySeal(_bi);
+
+
+
 #if !ETH_DEBUG
 	if (!pre)
 	{
