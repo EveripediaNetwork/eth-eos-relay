@@ -281,7 +281,9 @@ bool Ethash::verifySeal(BlockHeader const& _bi) const
 	std::cout << "STARTING EthashAux::eval" << std::endl;
 	auto result = EthashAux::eval(seedHash(_bi), _bi.hash(WithoutSeal), nonce(_bi));
 	std::cout << "FINISHED THE EVAL. ACCESSING THE STRUCT NOW..." << std::endl;
-
+	std::cout << "Value: " << result.value << std::endl;
+	std::cout << "MixHash: " << result.mixHash << std::endl;
+	
 	bool slow = result.value <= boundary(_bi) && result.mixHash == mixHash(_bi);
 
 #if ETH_DEBUG

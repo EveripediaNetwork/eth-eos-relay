@@ -62,6 +62,7 @@ static bool ethash_compute_cache_nodes(
 	ethash_h256_t const* seed
 )
 {
+	printf("COMPUTING CACHE NODES (ethash_compute_cache_nodes)\n");
 	if (cache_size % sizeof(node) != 0) {
 		return false;
 	}
@@ -74,6 +75,7 @@ static bool ethash_compute_cache_nodes(
 	}
 
 	for (uint32_t j = 0; j != ETHASH_CACHE_ROUNDS; j++) {
+		printf("ETHASH_CACHE_ROUND %d COMPLETE\n", j);
 		for (uint32_t i = 0; i != num_nodes; i++) {
 			uint32_t const idx = nodes[i].words[0] % num_nodes;
 			node data;
@@ -334,6 +336,7 @@ bool ethash_quick_check_difficulty(
 
 ethash_light_t ethash_light_new_internal(uint64_t cache_size, ethash_h256_t const* seed)
 {
+	printf("INSIDE internal.c (ethash_light_new_internal)\n");
 	struct ethash_light *ret;
 	ret = calloc(sizeof(*ret), 1);
 	if (!ret) {

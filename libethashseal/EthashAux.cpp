@@ -245,8 +245,14 @@ EthashProofOfWork::Result EthashAux::LightAllocation::compute(h256 const& _heade
 {
 	std::cout << "RUNNING LIGHT COMPUTE" << std::endl;
 	ethash_return_value r = ethash_light_compute(light, *(ethash_h256_t*)_headerHash.data(), (uint64_t)(u64)_nonce);
-	if (!r.success)
+	std::cout << "ethash_light_compute function completed" <<  std::endl;
+	if (!r.success){
+		std::cout << "FAIL: DAGCreationFailure" <<  std::endl;
 		BOOST_THROW_EXCEPTION(DAGCreationFailure());
+	}
+	else{
+		std::cout << "SUCCESS: DAGCreationSuccess" <<  std::endl;
+	}
 	return EthashProofOfWork::Result{h256((uint8_t*)&r.result, h256::ConstructFromPointer), h256((uint8_t*)&r.mix_hash, h256::ConstructFromPointer)};
 }
 

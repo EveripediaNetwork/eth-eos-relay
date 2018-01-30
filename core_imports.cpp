@@ -56,6 +56,8 @@ u256 MAXIMUM_EXTRA_DATA_SIZE = 0x20;
 #include <libdevcrypto/Common.cpp>
 #include <libdevcrypto/CryptoPP.h>
 #include <libdevcrypto/CryptoPP.cpp>
+#include <libdevcrypto/ECDHE.h>
+#include <libdevcrypto/ECDHE.cpp>
 #include <libdevcrypto/AES.h>
 #include <libdevcrypto/AES.cpp>
 #include <libethash/Ethash.h>
@@ -76,6 +78,8 @@ u256 MAXIMUM_EXTRA_DATA_SIZE = 0x20;
 #include <libethash/io.h>
 #include <libethash/io.c>
 #include <libethash/io_posix.c>
+#include <libethash/util.h>
+#include <libethash/util.c>
 
 #include <list>
 #include <vector>
