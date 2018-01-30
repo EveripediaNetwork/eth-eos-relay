@@ -128,7 +128,6 @@ void Ethash::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _p
 		std::cout << "STARTING PROOF OF WORK HASHING (CheckEverything)" << std::endl;
 		InvalidBlockNonce ex;
 		ex << errinfo_nonce(nonce(_bi));
-		ex << errinfo_nonce(nonce(_bi));
 		ex << errinfo_mixHash(mixHash(_bi));
 		ex << errinfo_seedHash(seedHash(_bi));
 		EthashProofOfWork::Result er = EthashAux::eval(seedHash(_bi), _bi.hash(WithoutSeal), nonce(_bi));
@@ -268,35 +267,35 @@ bool Ethash::verifySeal(BlockHeader const& _bi) const
 	std::cout << "VERIFY SEAL REACHED" << std::endl;
 	bool pre = quickVerifySeal(_bi);
 
-
-
-#if !ETH_DEBUG
 	if (!pre)
 	{
-		cwarn << "Fail on preVerify";
+		std::cout << "Fail on preVerify";
 		return false;
 	}
-#endif
 
 	std::cout << "STARTING EthashAux::eval" << std::endl;
 	auto result = EthashAux::eval(seedHash(_bi), _bi.hash(WithoutSeal), nonce(_bi));
 	std::cout << "FINISHED THE EVAL. ACCESSING THE STRUCT NOW..." << std::endl;
 	std::cout << "Value: " << result.value << std::endl;
-	std::cout << "MixHash: " << result.mixHash << std::endl;
-	
+	std::cout << "Calculated MixHash: " << result.mixHash << std::endl;
+	std::cout << "Given MixHash: " << mixHash(_bi) << std::endl;
+	std::cout << "Given Nonce: " << nonce(_bi) << std::endl;
+
+
 	bool slow = result.value <= boundary(_bi) && result.mixHash == mixHash(_bi);
+	std::cout << "Slow: " << slow << std::endl;
 
 #if ETH_DEBUG
 	if (!pre && slow)
 	{
-		cwarn << "WARNING: evaluated result gives true whereas ethash_quick_check_difficulty gives false.";
-		cwarn << "headerHash:" << _bi.hash(WithoutSeal);
-		cwarn << "nonce:" << nonce(_bi);
-		cwarn << "mixHash:" << mixHash(_bi);
-		cwarn << "difficulty:" << _bi.difficulty();
-		cwarn << "boundary:" << boundary(_bi);
-		cwarn << "result.value:" << result.value;
-		cwarn << "result.mixHash:" << result.mixHash;
+		std::cout << "WARNING: evaluated result gives true whereas ethash_quick_check_difficulty gives false.";
+		std::cout << "headerHash:" << _bi.hash(WithoutSeal);
+		std::cout << "nonce:" << nonce(_bi);
+		std::cout << "mixHash:" << mixHash(_bi);
+		std::cout << "difficulty:" << _bi.difficulty();
+		std::cout << "boundary:" << boundary(_bi);
+		std::cout << "result.value:" << result.value;
+		std::cout << "result.mixHash:" << result.mixHash;
 	}
 #endif // ETH_DEBUG
 
