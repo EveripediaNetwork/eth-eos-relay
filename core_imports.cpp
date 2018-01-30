@@ -9,7 +9,10 @@
 
 #include <libdevcore/Common.h>
 #include <libdevcore/Common.cpp>
-#include <libdevcore/Log.h>
+#include <libdevcore/Guards.h>
+#include <libdevcore/Guards.cpp>
+#include <libdevcore/FileSystem.h>
+#include <libdevcore/FileSystem.cpp>
 #include <libdevcore/RLP.cpp>
 #include <libdevcore/TrieDB.h>
 #include <libdevcore/TrieDB.cpp>
@@ -43,6 +46,8 @@ u256 MIN_GAS_LIMIT = 0x1388;
 u256 MAX_GAS_LIMIT = 0x7fffffffffffffff;
 u256 GAS_LIMIT_BOUND_DIVISOR = 0x0400;
 u256 MAXIMUM_EXTRA_DATA_SIZE = 0x20;
+
+
 
 #include <libdevcore/Worker.h>
 #include <libdevcore/Worker.cpp>

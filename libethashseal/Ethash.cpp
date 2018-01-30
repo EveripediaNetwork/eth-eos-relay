@@ -149,7 +149,10 @@ void Ethash::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _p
 		ex << errinfo_nonce(nonce(_bi));
 		BOOST_THROW_EXCEPTION(ex);
 	}
-	std::cout << "FINISHED" << std::endl;
+	else{
+			std::cout << "FAILED: FINISHED WITHOUT A PROOF OF WORK CHECK" << std::endl;
+	}
+
 }
 
 void Ethash::verifyTransaction(ImportRequirements::value _ir, TransactionBase const& _t, BlockHeader const& _bi) const
@@ -241,8 +244,11 @@ void Ethash::populateFromParent(BlockHeader& _bi, BlockHeader const& _parent) co
 bool Ethash::quickVerifySeal(BlockHeader const& _bi) const
 {
 	std::cout << "QUICK VERIFY SEAL REACHED" << std::endl;
-	if (_bi.number() >= ETHASH_EPOCH_LENGTH * 2048)
+	if (_bi.number() >= ETHASH_EPOCH_LENGTH * 2048){
+		std::cout << "RETURNING DUE TO ETHASH_EPOCH_LENGTH" << std::endl;
 		return false;
+	}
+
 
 	auto h = _bi.hash(WithoutSeal);
 	auto m = mixHash(_bi);
@@ -272,8 +278,10 @@ bool Ethash::verifySeal(BlockHeader const& _bi) const
 	}
 #endif
 
+	std::cout << "STARTING EthashAux::eval" << std::endl;
 	auto result = EthashAux::eval(seedHash(_bi), _bi.hash(WithoutSeal), nonce(_bi));
 	std::cout << "FINISHED THE EVAL. ACCESSING THE STRUCT NOW..." << std::endl;
+
 	bool slow = result.value <= boundary(_bi) && result.mixHash == mixHash(_bi);
 
 #if ETH_DEBUG

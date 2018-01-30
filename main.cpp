@@ -104,13 +104,13 @@ bool getTransactionProof (const std::string& txHash){
         blockHeaderObj_4700000->verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4699999, *bytesConstRef4700000);
         std::cout << "BLOCK HEADER VERIFIED" << std::endl;
 
-        dev::eth::Ethash* quickEthHash = new dev::eth::Ethash();
-        u256 result2 = quickEthHash->calculateDifficulty( *blockHeaderObj_4700000, *blockHeaderObj_4699999);
+        dev::eth::Ethash quickEthHash;
+        quickEthHash.init();
+        u256 result2 = quickEthHash.calculateDifficulty( *blockHeaderObj_4700000, *blockHeaderObj_4699999);
         std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result2 << " |||||||||||| " << std::endl;
         std::cout << "BLOCK HEADER VERIFIED (non-custom method)" << std::endl;
-        quickEthHash->verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4700000, *blockHeaderObj_4699999, *bytesConstRef4700000);
+        quickEthHash.verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4700000, *blockHeaderObj_4699999, *bytesConstRef4700000);
 
-        delete quickEthHash;
         delete bytesConstRef4700000;
         delete bytedEntireBlock_4699999;
         delete bytedEntireBlock_4700000;

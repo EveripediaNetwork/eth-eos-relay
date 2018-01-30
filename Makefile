@@ -2,7 +2,7 @@
 
 
 runner: main.o
-	g++ main.o -pthread -L/usr/lib/x86_64-linux-gnu/ -lboost_system -lboost_thread -lboost_random -lcryptopp -L/usr/local/lib/ -lscrypt -o runner
+	g++ main.o -pthread -L/usr/lib/x86_64-linux-gnu/ -lboost_system -lboost_thread -lboost_random -lboost_filesystem -lcryptopp -L/usr/local/lib/ -lscrypt -o runner
 	rm *.o
 
 main.o: main.cpp

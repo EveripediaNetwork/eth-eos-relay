@@ -215,6 +215,7 @@ unsigned EthashAux::computeFull(h256 const& _seedHash, bool _createIfMissing)
 		return 100;
 	}
 
+
 	if (_createIfMissing && (!get()->m_fullGenerator || !get()->m_fullGenerator->joinable()))
 	{
 		get()->m_fullProgress = 0;
@@ -233,6 +234,7 @@ unsigned EthashAux::computeFull(h256 const& _seedHash, bool _createIfMissing)
 
 EthashProofOfWork::Result EthashAux::FullAllocation::compute(h256 const& _headerHash, Nonce const& _nonce) const
 {
+	std::cout << "RUNNING FULL COMPUTE" << std::endl;
 	ethash_return_value_t r = ethash_full_compute(full, *(ethash_h256_t*)_headerHash.data(), (uint64_t)(u64)_nonce);
 	if (!r.success)
 		BOOST_THROW_EXCEPTION(DAGCreationFailure());
@@ -241,6 +243,7 @@ EthashProofOfWork::Result EthashAux::FullAllocation::compute(h256 const& _header
 
 EthashProofOfWork::Result EthashAux::LightAllocation::compute(h256 const& _headerHash, Nonce const& _nonce) const
 {
+	std::cout << "RUNNING LIGHT COMPUTE" << std::endl;
 	ethash_return_value r = ethash_light_compute(light, *(ethash_h256_t*)_headerHash.data(), (uint64_t)(u64)_nonce);
 	if (!r.success)
 		BOOST_THROW_EXCEPTION(DAGCreationFailure());
@@ -250,8 +253,11 @@ EthashProofOfWork::Result EthashAux::LightAllocation::compute(h256 const& _heade
 EthashProofOfWork::Result EthashAux::eval(h256 const& _seedHash, h256 const& _headerHash, Nonce const& _nonce)
 {
 	DEV_GUARDED(get()->x_fulls)
-		if (FullType dag = get()->m_fulls[_seedHash].lock())
+		if (FullType dag = get()->m_fulls[_seedHash].lock()){
+			std::cout << "TRYING DAG COMPUTE" << std::endl;
 			return dag->compute(_headerHash, _nonce);
+		}
+
 	DEV_IF_THROWS(return EthashAux::get()->light(_seedHash)->compute(_headerHash, _nonce))
 	{
 		return EthashProofOfWork::Result{ ~h256(), h256() };
