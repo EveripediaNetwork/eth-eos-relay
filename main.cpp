@@ -4,7 +4,6 @@
  */
 
 #include "core_imports.cpp"
-#include "custom-headers/ethash_calculate_difficulty_custom.hpp"
 
 using json = nlohmann::json;
 
