@@ -176,7 +176,9 @@ static int dagCallbackShim(unsigned _p)
 EthashAux::FullType EthashAux::full(h256 const& _seedHash, bool _createIfMissing, function<int(unsigned)> const& _f)
 {
 	FullType ret;
+	std::cout << "CALLING THE LIGHT FUNCTION FIRST INSIDE THE FULL" << std::endl;
 	auto l = light(_seedHash);
+	std::cout << "LIGHT FUNCTION DONE. MOVING ON WITH REST OF FULL" << std::endl;
 
 	DEV_GUARDED(get()->x_fulls)
 		if ((ret = get()->m_fulls[_seedHash].lock()))
@@ -185,6 +187,7 @@ EthashAux::FullType EthashAux::full(h256 const& _seedHash, bool _createIfMissing
 			return ret;
 		}
 
+	// Mutex
 	if (_createIfMissing || computeFull(_seedHash, false) == 100)
 	{
 		s_dagCallback = _f;
@@ -201,6 +204,7 @@ EthashAux::FullType EthashAux::full(h256 const& _seedHash, bool _createIfMissing
 
 unsigned EthashAux::computeFull(h256 const& _seedHash, bool _createIfMissing)
 {
+	// Mutex
 	Guard l(get()->x_fulls);
 	uint64_t blockNumber;
 
@@ -216,18 +220,21 @@ unsigned EthashAux::computeFull(h256 const& _seedHash, bool _createIfMissing)
 	}
 
 
+	std::cout << "ABOUT TO DO m_fullGenerator" << std::endl;
 	if (_createIfMissing && (!get()->m_fullGenerator || !get()->m_fullGenerator->joinable()))
 	{
 		get()->m_fullProgress = 0;
 		get()->m_generatingFullNumber = blockNumber / ETHASH_EPOCH_LENGTH * ETHASH_EPOCH_LENGTH;
+		std::cout << "m_generatingFullNumber complete" << std::endl;
 		get()->m_fullGenerator = unique_ptr<thread>(new thread([=](){
-			cnote << "Loading full DAG of seedhash: " << _seedHash;
+			std::cout << "Loading full DAG of seedhash: " << _seedHash << std::endl;
 			get()->full(_seedHash, true, [](unsigned p){ get()->m_fullProgress = p; return 0; });
-			cnote << "Full DAG loaded";
+			std::cout << "Full DAG loaded" << std::endl;
 			get()->m_fullProgress = 0;
 			get()->m_generatingFullNumber = NotGenerating;
 		}));
 	}
+	std::cout << "m_fullGenerator done" << std::endl;
 
 	return (get()->m_generatingFullNumber == blockNumber) ? get()->m_fullProgress : 0;
 }
@@ -258,13 +265,26 @@ EthashProofOfWork::Result EthashAux::LightAllocation::compute(h256 const& _heade
 
 EthashProofOfWork::Result EthashAux::eval(h256 const& _seedHash, h256 const& _headerHash, Nonce const& _nonce)
 {
-	DEV_GUARDED(get()->x_fulls)
+	DEV_GUARDED(get()->x_fulls){
+		std::cout << "TRYING DAG COMPUTE" << std::endl;
 		if (FullType dag = get()->m_fulls[_seedHash].lock()){
-			std::cout << "TRYING DAG COMPUTE" << std::endl;
 			return dag->compute(_headerHash, _nonce);
 		}
+	}
 
-	DEV_IF_THROWS(return EthashAux::get()->light(_seedHash)->compute(_headerHash, _nonce))
+
+	std::cout << "INSIDE THE EVAL FUNCTION" << std::endl;
+
+	// auto fullAux = EthashAux::get()->full(_seedHash);
+	// std::cout << "FULL FUNCTION DONE" << std::endl;
+	// DEV_IF_THROWS(return fullAux->compute(_headerHash, _nonce))
+	// {
+	// 	return EthashProofOfWork::Result{ ~h256(), h256() };
+	// }
+
+	auto lightAux = EthashAux::get()->light(_seedHash);
+	std::cout << "LIGHT FUNCTION DONE" << std::endl;
+	DEV_IF_THROWS(return lightAux->compute(_headerHash, _nonce))
 	{
 		return EthashProofOfWork::Result{ ~h256(), h256() };
 	}

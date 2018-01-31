@@ -43,7 +43,7 @@ static std::string RLPtoString(dev::RLP const& _d, unsigned _depth = 0) {
         return _out.str();
 }
 
-bool getTransactionProof (const std::string& txHash){
+bool prove(const std::string& txHash){
         std::cout << "Received tx hash: " <<  txHash << '\n';
 
         // Need code here to fetch the transaction's entire block given the txID
@@ -124,6 +124,6 @@ bool getTransactionProof (const std::string& txHash){
 int main()
 {
         std::string inputTxHash = "0xcbc84cc7337bc15867e46a892955ea3d3c5270b5f31a6741abb6fe91ad11132b";
-        getTransactionProof(inputTxHash);
+        prove(inputTxHash);
         return 0;
 }
