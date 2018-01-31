@@ -1,3 +1,8 @@
+/** @file main.cpp
+ * @author Travis Moore <travis@everipedia.com>
+ * @date 2018
+ */
+
 #include "core_imports.cpp"
 #include "custom-headers/ethash_calculate_difficulty_custom.hpp"
 
