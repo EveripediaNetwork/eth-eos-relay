@@ -4,48 +4,9 @@
  */
 
 #include "core_imports.cpp"
+#include "core_functions.cpp"
 
 using json = nlohmann::json;
-
-static std::vector<unsigned char> HexToBytes(const std::string& hex) {
-        std::vector<unsigned char> bytes;
-
-        for (unsigned int i = 0; i < hex.length(); i += 2) {
-                std::string byteString = hex.substr(i, 2);
-                unsigned char byte = (unsigned char) strtol(byteString.c_str(), NULL, 16);
-                bytes.push_back(byte);
-        }
-
-        return bytes;
-}
-
-static void RLPtoStringStream(std::stringstream& _out, dev::RLP const& _d, unsigned _depth = 0) {
-        if (_depth > 64)
-		_out << "<max-depth-reached>";
-	else if (_d.isNull())
-		_out << "null";
-	else if (_d.isInt())
-		_out << std::showbase << std::hex << std::nouppercase << _d.toInt<bigint>(RLP::LaissezFaire) << dec;
-	else if (_d.isData())
-		_out << escaped(_d.toString(), false);
-	else if (_d.isList())
-	{
-		_out << "[";
-		int j = 0;
-		for (auto i: _d)
-		{
-			_out << (j++ ? ", " : " ");
-			RLPtoStringStream(_out, i, _depth + 1);
-		}
-		_out << " ]";
-	}
-}
-
-static std::string RLPtoString(dev::RLP const& _d, unsigned _depth = 0) {
-        std::stringstream _out;
-        RLPtoStringStream(_out, _d, 0);
-        return _out.str();
-}
 
 bool prove(const std::string& txHash){
         std::cout << "Received tx hash: " <<  txHash << '\n';
@@ -60,6 +21,8 @@ bool prove(const std::string& txHash){
         // https://etherscan.io/getRawTx?tx=0x5da0298e46e949f863f0873b6f8c102e150dc85d31f4d7c6d7c82cb69c8a672e
         //  2 transactions
         // https://www.etherchain.org/block/4052768
+
+
 
         bytes* bytedEntireBlock_4699999 = new bytes(HexToBytes(BLOCK_RLP_STRING_4699999));
         bytes* bytedEntireBlock_4700000 = new bytes(HexToBytes(BLOCK_RLP_STRING_4700000));
@@ -100,8 +63,8 @@ bool prove(const std::string& txHash){
         cout << "Tx Root for 4699999 from its BlockHeader Object: " << blockHeaderObj_4699999->transactionsRoot() << endl;
         cout << "Tx Root for 4700000 from its BlockHeader Object: " << blockHeaderObj_4700000->transactionsRoot() << endl;
 
-        u256 result = calculateDifficultyCustom(*blockHeaderObj_4700000, *blockHeaderObj_4699999);
-        std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result << " |||||||||||| " << std::endl;
+        // u256 result = calculateDifficultyCustom(*blockHeaderObj_4700000, *blockHeaderObj_4699999);
+        // std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result << " |||||||||||| " << std::endl;
 
         bytesConstRef* bytesConstRef4700000 = new bytesConstRef(entireBlockRLP_4700000->toBytesConstRef());
 
@@ -114,6 +77,8 @@ bool prove(const std::string& txHash){
         std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result2 << " |||||||||||| " << std::endl;
         std::cout << "BLOCK HEADER VERIFIED (non-custom method)" << std::endl;
         quickEthHash.verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4700000, *blockHeaderObj_4699999, *bytesConstRef4700000);
+
+
 
         delete bytesConstRef4700000;
         delete bytedEntireBlock_4699999;

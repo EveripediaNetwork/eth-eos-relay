@@ -1,44 +1,78 @@
-
-u256 calculateDifficultyCustom(BlockHeader const& _bi, BlockHeader const& _parent)
+void Ethash::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _parent, bytesConstRef _block) const
 {
-	const unsigned c_expDiffPeriod = 100000;
+	SealEngineFace::verify(_s, _bi, _parent, _block);
 
-	if (!_bi.number())
-		throw GenesisBlockCannotBeCalculated();
-	auto const& minimumDifficulty = MINIMUM_DIFFICULTY;
-	auto const& difficultyBoundDivisor = DIFFICULTY_BOUND_DIVISOR;
-	auto const& durationLimit = DURATION_LIMIT;
-
-	bigint target;	// stick to a bigint for the target. Don't want to risk going negative.
-	if (_bi.number() < HOMESTEAD_BLOCK)
-		// Frontier-era difficulty adjustment
-		target = _bi.timestamp() >= _parent.timestamp() + durationLimit ? _parent.difficulty() - (_parent.difficulty() / difficultyBoundDivisor) : (_parent.difficulty() + (_parent.difficulty() / difficultyBoundDivisor));
-	else
+	if (_s != CheckNothingNew)
 	{
-		bigint const timestampDiff = bigint(_bi.timestamp()) - _parent.timestamp();
-		bigint const adjFactor = _bi.number() < BYZANTIUM_BLOCK ?
-			max<bigint>(1 - timestampDiff / 10, -99) : // Homestead-era difficulty adjustment
-			max<bigint>((_parent.hasUncles() ? 2 : 1) - timestampDiff / 9, -99); // Byzantium-era difficulty adjustment
+		if (_bi.difficulty() < MINIMUM_DIFFICULTY)
+			BOOST_THROW_EXCEPTION(InvalidDifficulty() << RequirementError(bigint(MINIMUM_DIFFICULTY), bigint(_bi.difficulty())) );
 
-		target = _parent.difficulty() + _parent.difficulty() / 2048 * adjFactor;
+		if (_bi.gasLimit() < MIN_GAS_LIMIT)
+			BOOST_THROW_EXCEPTION(InvalidGasLimit() << RequirementError(bigint(MIN_GAS_LIMIT), bigint(_bi.gasLimit())) );
+
+		if (_bi.gasLimit() > MAX_GAS_LIMIT)
+			BOOST_THROW_EXCEPTION(InvalidGasLimit() << RequirementError(bigint(MAX_GAS_LIMIT), bigint(_bi.gasLimit())) );
+
+		if (_bi.number() && _bi.extraData().size() > MAXIMUM_EXTRA_DATA_SIZE)
+			BOOST_THROW_EXCEPTION(ExtraDataTooBig() << RequirementError(bigint(MAXIMUM_EXTRA_DATA_SIZE), bigint(_bi.extraData().size())) << errinfo_extraData(_bi.extraData()));
+
+		u256 const& daoHardfork = DAO_BLOCK;
+		if (daoHardfork != 0 && daoHardfork + 9 >= daoHardfork && _bi.number() >= daoHardfork && _bi.number() <= daoHardfork + 9)
+			if (_bi.extraData() != fromHex("0x64616f2d686172642d666f726b"))
+				BOOST_THROW_EXCEPTION(ExtraDataIncorrect() << errinfo_comment("Received block from the wrong fork (invalid extradata)."));
 	}
 
-	bigint o = target;
-	unsigned exponentialIceAgeBlockNumber = unsigned(_parent.number() + 1);
-
-	// EIP-649 modifies exponentialIceAgeBlockNumber
-	if (_bi.number() >= BYZANTIUM_BLOCK)
+	if (_parent)
 	{
-		if (exponentialIceAgeBlockNumber >= 3000000)
-			exponentialIceAgeBlockNumber -= 3000000;
-		else
-			exponentialIceAgeBlockNumber = 0;
+		// Check difficulty is correct given the two timestamps.
+		auto expected = calculateDifficulty(_bi, _parent);
+		auto difficulty = _bi.difficulty();
+		if (difficulty != expected)
+			BOOST_THROW_EXCEPTION(InvalidDifficulty() << RequirementError((bigint)expected, (bigint)difficulty));
+
+		auto gasLimit = _bi.gasLimit();
+		auto parentGasLimit = _parent.gasLimit();
+		if (
+			gasLimit < MIN_GAS_LIMIT ||
+			gasLimit > MAX_GAS_LIMIT ||
+			gasLimit <= parentGasLimit - parentGasLimit / GAS_LIMIT_BOUND_DIVISOR ||
+			gasLimit >= parentGasLimit + parentGasLimit / GAS_LIMIT_BOUND_DIVISOR)
+			BOOST_THROW_EXCEPTION(
+				InvalidGasLimit()
+				<< errinfo_min((bigint)((bigint)parentGasLimit - (bigint)(parentGasLimit / GAS_LIMIT_BOUND_DIVISOR)))
+				<< errinfo_got((bigint)gasLimit)
+				<< errinfo_max((bigint)((bigint)parentGasLimit + parentGasLimit / GAS_LIMIT_BOUND_DIVISOR))
+			);
 	}
 
-	unsigned periodCount = exponentialIceAgeBlockNumber / c_expDiffPeriod;
-	if (periodCount > 1)
-		o += (bigint(1) << (periodCount - 2));	// latter will eventually become huge, so ensure it's a bigint.
+	// check it hashes according to proof of work or that it's the genesis block.
+	if (_s == CheckEverything && _bi.parentHash() && !verifySeal(_bi))
+	{
+		std::cout << "STARTING PROOF OF WORK HASHING (CheckEverything)" << std::endl;
+		InvalidBlockNonce ex;
+		ex << errinfo_nonce(nonce(_bi));
+		ex << errinfo_mixHash(mixHash(_bi));
+		ex << errinfo_seedHash(seedHash(_bi));
+		EthashProofOfWork::Result er = EthashAux::eval(seedHash(_bi), _bi.hash(WithoutSeal), nonce(_bi));
+		ex << errinfo_ethashResult(make_tuple(er.value, er.mixHash));
+		ex << errinfo_hash256(_bi.hash(WithoutSeal));
+		ex << errinfo_difficulty(_bi.difficulty());
+		ex << errinfo_target(boundary(_bi));
+		BOOST_THROW_EXCEPTION(ex);
+	}
+	else if (_s == QuickNonce && _bi.parentHash() && !quickVerifySeal(_bi))
+	{
+		std::cout << "STARTING PROOF OF WORK (QuickNonce)..." << std::endl;
+		InvalidBlockNonce ex;
+		auto quickHash = _bi.hash(WithoutSeal);
+		std::cout << quickHash << std::endl;
+		ex << errinfo_hash256(quickHash);
+		ex << errinfo_difficulty(_bi.difficulty());
+		ex << errinfo_nonce(nonce(_bi));
+		BOOST_THROW_EXCEPTION(ex);
+	}
+	else{
+			std::cout << "FAILED: FINISHED WITHOUT A PROOF OF WORK CHECK" << std::endl;
+	}
 
-	o = max<bigint>(minimumDifficulty, o);
-	return u256(min<bigint>(o, std::numeric_limits<u256>::max()));
 }
