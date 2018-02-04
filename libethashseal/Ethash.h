@@ -74,10 +74,10 @@ public:
 	static void ensurePrecomputed(unsigned _number);
 	static void init();
 
-private:
 	bool verifySeal(BlockHeader const& _bi) const;
 	bool quickVerifySeal(BlockHeader const& _bi) const;
 
+private:
 	eth::GenericFarm<EthashProofOfWork> m_farm;
 	std::string m_sealer = "cpu";
 	BlockHeader m_sealing;

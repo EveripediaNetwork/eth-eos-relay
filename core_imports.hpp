@@ -60,7 +60,7 @@ u256 MAXIMUM_EXTRA_DATA_SIZE = 0x20;
 #include <libdevcrypto/ECDHE.cpp>
 #include <libdevcrypto/AES.h>
 #include <libdevcrypto/AES.cpp>
-#include <libethash/Ethash.h>
+#include <libethash/ethash.h>
 #include <libethash/sha3.h>
 #include <libethash/sha3.c>
 #include <libethashseal/EthashAux.h>

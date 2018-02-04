@@ -3,10 +3,18 @@
  * @date 2018
  */
 
-#include "core_imports.cpp"
-#include "core_functions.cpp"
+#include "main.hpp"
 
 using json = nlohmann::json;
+
+std::string hexStr(uint8_t * data, int len)
+{
+    std::stringstream ss;
+    ss << std::hex;
+    for(int i=0;i<len;++i)
+        ss << std::setw(2) << std::setfill('0') << (int)data[i];
+    return ss.str();
+}
 
 bool prove(const std::string& txHash){
         std::cout << "Received tx hash: " <<  txHash << '\n';
@@ -21,9 +29,7 @@ bool prove(const std::string& txHash){
         // https://etherscan.io/getRawTx?tx=0x5da0298e46e949f863f0873b6f8c102e150dc85d31f4d7c6d7c82cb69c8a672e
         //  2 transactions
         // https://www.etherchain.org/block/4052768
-
-
-
+        
         bytes* bytedEntireBlock_4699999 = new bytes(HexToBytes(BLOCK_RLP_STRING_4699999));
         bytes* bytedEntireBlock_4700000 = new bytes(HexToBytes(BLOCK_RLP_STRING_4700000));
         dev::RLP* entireBlockRLP_4699999 = new dev::RLP(*bytedEntireBlock_4699999);
@@ -77,7 +83,7 @@ bool prove(const std::string& txHash){
         std::cout << "|||||||||||| DIFFICULTY SHOULD BE: " << result2 << " |||||||||||| " << std::endl;
         std::cout << "BLOCK HEADER VERIFIED (non-custom method)" << std::endl;
         quickEthHash.verify(dev::eth::Strictness::CheckEverything, *blockHeaderObj_4700000, *blockHeaderObj_4699999, *bytesConstRef4700000);
-
+    
 
 
         delete bytesConstRef4700000;
@@ -90,9 +96,102 @@ bool prove(const std::string& txHash){
 
 }
 
+EthereumTx merkle (const std::string & merkleProof) {
+    std::cout << "Received RLP encoded merkle proof: " <<  merkleProof << '\n';
+    
+}
+
+// check if the cache has already been computed for this epoch
+// if it has, read it into memory
+// if it doesn't, compute and save it to file so it can be fetched
+// for future blocks
+ethash_light_t compute_cache() {
+
+    bool exists = access( "cache_4700000", F_OK ) != -1;
+    if (exists) {
+        cout << "LOADING CACHE FROM FILESYSTEM" << endl;
+
+        // read cache into buffer
+        ifstream is ("cache_4700000", ifstream::binary);
+
+        is.seekg(0, is.end);
+        size_t cache_size = (size_t) is.tellg();
+        is.seekg(0, is.beg);
+
+        char * buffer = new char[cache_size];
+        is.read(buffer, cache_size);
+
+        cout << "FILE READ COMPLETE" << endl;
+        cout << "BUFFER ITEM: " <<  hexStr(buffer, 64) << endl;
+
+        // create ethash cache struct 
+        struct ethash_light * light;
+        light = calloc(sizeof(*light), 1);
+        if (!light) {
+            cout << "ETHASH_LIGHT_T STRUCT CREATION FAILED" << endl;
+            free(buffer);
+            exit(2);
+        }
+
+        // populate cache struct
+        light->block_number = (uint64_t) 4700000;
+        light->cache_size = (uint64_t) cache_size;
+        light->cache = (void*) buffer;
+        cout << "POPULATED ETHASH CACHE STRUCT" << endl;
+        
+        return light;
+    }
+    else {
+        cout << "COMPUTING FRESH CACHE " << endl;
+        ethash_light_t light = ethash_light_new(4700000);
+        ofstream cache_file;
+        cache_file.open("cache_4700000", ios::out | ios::binary);
+        cache_file.write(light->cache, light->cache_size);
+        return light;
+    }
+}
+
+void verify_block() {
+    ethash_light_t light = compute_cache();
+    cout << "CACHE LENGTH: " << light->cache_size << endl;
+    char * cacheChar = (uint8_t *) light->cache;
+    cout << "CACHE ITEM: " <<  hexStr(cacheChar, 64) << endl;
+
+    // read in block 4700000
+    bytes* bytedEntireBlock_4700000 = new bytes(HexToBytes(BLOCK_RLP_STRING_4700000));
+    dev::RLP* entireBlockRLP_4700000 = new dev::RLP(*bytedEntireBlock_4700000);
+    BlockHeader* blockHeaderObj_4700000 = new BlockHeader(entireBlockRLP_4700000[0].data().toBytes());
+
+    // get header info
+    Ethash ethash;
+	BlockHeader bi = *blockHeaderObj_4700000;
+    h256 _headerHash = bi.hash(WithoutSeal);
+	h64 _nonce = ethash.nonce(bi);
+
+    // compute answer
+    ethash_return_value_t r = ethash_light_compute(light, *(ethash_h256_t*)_headerHash.data(), (uint64_t)(u64)_nonce);
+    if (!r.success) {
+        cout << "ETHASH HASHING FAILED" << endl;
+        exit(3);
+    }
+    
+    cout << "RESULT: " << hexStr(r.result.b, 32) << endl;
+    cout << "MIXHASH: " << hexStr(r.mix_hash.b, 32) << endl;
+    cout << "EXPECTED MIXHASH: 5247691ab0953fa5c5c2c84b0b142b6d62e9dc5f35a865ed197b9cd3736af6f1" << endl;
+
+    //free(buffer);
+    cout << "MEMORY FREED" << endl;
+}
+
+
+
 int main()
 {
-        std::string inputTxHash = "0xcbc84cc7337bc15867e46a892955ea3d3c5270b5f31a6741abb6fe91ad11132b";
-        prove(inputTxHash);
-        return 0;
+    std::string inputTxHash = "0xcbc84cc7337bc15867e46a892955ea3d3c5270b5f31a6741abb6fe91ad11132b";
+    //prove(inputTxHash);
+	
+    verify_block();
+    
+    //std::string inputMerkleProof = "
+    return 0;
 }

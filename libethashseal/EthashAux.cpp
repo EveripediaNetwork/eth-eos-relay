@@ -121,6 +121,7 @@ EthashAux::LightType EthashAux::light(h256 const& _seedHash)
 	UpgradableGuard l(get()->x_lights);
 	if (get()->m_lights.count(_seedHash))
 		return get()->m_lights.at(_seedHash);
+    std::cout << "NO LIGHT CACHE FOUND" << std::endl;
 	UpgradeGuard l2(l);
 	return (get()->m_lights[_seedHash] = make_shared<LightAllocation>(_seedHash));
 }
@@ -268,6 +269,7 @@ EthashProofOfWork::Result EthashAux::eval(h256 const& _seedHash, h256 const& _he
 	DEV_GUARDED(get()->x_fulls){
 		std::cout << "TRYING DAG COMPUTE" << std::endl;
 		if (FullType dag = get()->m_fulls[_seedHash].lock()){
+            std::cout << "LOCK IS TRUE" << std::endl;
 			return dag->compute(_headerHash, _nonce);
 		}
 	}
