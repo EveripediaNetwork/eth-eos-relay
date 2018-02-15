@@ -183,15 +183,70 @@ void verify_block() {
     cout << "MEMORY FREED" << endl;
 }
 
+EthereumTx merkle_proof() {
+    h256 block_merkle = h256("0x1e93385be250047bd0b5fcad904c42e4bf4ced18dacc729fc68cd4e3871727f0");
+    bytes* tx_bytes = new bytes(HexToBytes(TX_IN_4700000_RLP_HEX));
+    dev::RLP* tx_rlp = new dev::RLP(*tx_bytes);
+    string path = "81CB";
+
+    for (int i=0; i < tx_rlp[0].itemCount(); i++) {
+        dev::RLP node = tx_rlp[0][i];
+
+        // verify merkle root
+        if (i == 0) {
+            h256 nodeHash = sha3(node.data().toBytes());
+            assert(nodeHash == block_merkle);
+            cout << "MERKLE ROOT MATCHES" << endl;
+        }
+
+        if (node.itemCount() == 17) {
+            cout << "Branch Node" << endl; 
+
+            // convert path nibble hex to index (0-15)
+            char nibble = (char) path[i];
+            int nibbleIndex = (nibble >= 'A') ? (nibble - 'A' + 10) : (nibble - '0');
+
+            // determine branch path
+            bytesConstRef branchPathBytes = node[nibbleIndex].data();
+            size_t branchPathSize = branchPathBytes.size() - 1;
+            uint8_t branchPathArr[branchPathSize];
+            copy(branchPathBytes.begin() + 1, branchPathBytes.end(), branchPathArr);
+            string branchPath = hexStr(branchPathArr, branchPathSize);
+            h256 branchPathHash = h256(branchPath);
+
+            // hash next node
+            dev::RLP nextNode = tx_rlp[0][i+1];
+            h256 nextNodeHash = sha3(nextNode.data().toBytes());
+
+            // compare branch path and next node
+            assert(branchPathHash == nextNodeHash);
+            cout << "  Verified current node path" << endl;
+        }
+        else if (node.itemCount() == 2) {
+            u256 LEAF_FLAG = u256(HexToBytes("20"));
+
+            if (node[0][0] == LEAF_FLAG) {
+                cout << "MERKLE PROOF VERIFIED" << endl;
+                cout << "Leaf Node" << endl;
+                EthereumTx* tx = new EthereumTx(node[1][0]);
+                return *tx;
+            }
+            else {
+                cout << "Extension Node" << endl; 
+            }
+        }
+    }
+}
 
 
 int main()
 {
     std::string inputTxHash = "0xcbc84cc7337bc15867e46a892955ea3d3c5270b5f31a6741abb6fe91ad11132b";
     //prove(inputTxHash);
-	
-    verify_block();
+    //verify_block();
     
-    //std::string inputMerkleProof = "
+    EthereumTx tx = merkle_proof();
+    cout << tx << endl;
+
     return 0;
 }
