@@ -14,8 +14,32 @@ public:
         else if (a.size() == 21)
             copy(a.begin() + 1, a.end(), m_data);
     }
+    EthereumAddress(Public pubkey) {
+        h256 hash = sha3(pubkey.ref());
+        std::copy(hash.data() + 12, hash.data() + 32, m_data);
+        cout << "pubkey hash " << hash << endl;
+    }
+    
     byte m_data[20];
+
+    std::string hex()
+    {
+        std::stringstream ss;
+        ss << std::hex;
+        for(int i=0;i<20;++i)
+            ss << std::setw(2) << std::setfill('0') << (int)m_data[i];
+        return ss.str();
+    }
 };
+
+std::string hexStrB(byte * data, int len)
+{
+    std::stringstream ss;
+    ss << std::hex;
+    for(int i=0;i<len;++i)
+        ss << std::setw(2) << std::setfill('0') << (int)data[i];
+    return ss.str();
+}
 
 class EthereumTx {
 public:
@@ -26,9 +50,39 @@ public:
         gasLimit = uint64_t(tx_rlp[2]);
         to = EthereumAddress(tx_rlp[3].data());
         value = u256(tx_rlp[4]);
-        v = tx_rlp[5].data()[0];
-        r = tx_rlp[6].data();
-        s = tx_rlp[7].data();
+        data = tx_rlp[5].data();
+
+        v = tx_rlp[6].data()[0];
+        r = tx_rlp[7].data();
+        s = tx_rlp[8].data();
+
+        RLPStream rstream;
+        rstream.appendList(9);
+        for (int i=0; i<6; i++)
+            rstream.appendRaw(tx_rlp[i].data());
+        rstream.append(1);
+        rstream.append("");
+        rstream.append("");
+        RLP sig_rlp = RLP(rstream.out());
+        bytes b = sig_rlp.data().toBytes();
+        cout << "signing rlp " << hexStrB(&b[0], b.size()) << endl;
+
+        cout << "TX RLP " << tx_rlp << endl;
+        cout << "SIG RLP " << sig_rlp << endl;
+
+        v = 1;
+        h256 signing_hash = sha3(sig_rlp.data());
+        Public pubkey = recover(signature(), signing_hash);
+        cout << "pubkey " << pubkey << endl;
+        from = EthereumAddress(pubkey);
+    }
+
+    Signature signature () {
+        h520 sig;
+        std::copy(r.begin() + 1, r.end(), sig.data());
+        std::copy(s.begin() + 1, s.end(), sig.data() + 32);
+        *(sig.data() + 64) = v;
+        return sig;
     }
 
     EthereumTxId id;
@@ -48,9 +102,11 @@ public:
 ostream& operator<<(ostream& os, const EthereumTx& tx)  
 {
     os << "Ethereum Tx " << tx.id << endl;
+    os << "  from " << tx.from.hex() << endl;
+    os << "  to " << tx.to.hex() << endl;
     os << "  nonce " << tx.nonce << endl;
     os << "  gas price " << tx.gasPrice << endl;
     os << "  gas limit " << tx.gasLimit << endl;
     os << "  value " << tx.value << endl;
-}
-
+    os << "  signature " << tx.signature() << endl;
+};
