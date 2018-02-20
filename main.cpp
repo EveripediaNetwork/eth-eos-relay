@@ -78,10 +78,11 @@ bool verify_full_block(const std::string& BLOCK_RLP, const std::string& PARENT_B
 // if it doesn't, compute and save it to file so it can be fetched
 // for future blocks
 ethash_light_t compute_cache(uint64_t blockno) {
+    cout << "ENTERING CUSTOM CACHE PART" << endl;
     const uint64_t EPOCH_LENGTH = 30000;
     uint64_t epoch = blockno / EPOCH_LENGTH;
-    
-    std::string cachefile = "cache/" + std::to_string(epoch);
+
+    std::string cachefile = "./cache/" + std::to_string(epoch);
     bool exists = access( cachefile.c_str(), F_OK ) != -1;
     if (exists) {
         cout << "LOADING CACHE FROM FILESYSTEM" << endl;
@@ -99,7 +100,7 @@ ethash_light_t compute_cache(uint64_t blockno) {
         cout << "FILE READ COMPLETE" << endl;
         cout << "BUFFER ITEM: " <<  hexStr(buffer, 64) << endl;
 
-        // create ethash cache struct 
+        // create ethash cache struct
         struct ethash_light * light;
         light = calloc(sizeof(*light), 1);
         if (!light) {
@@ -113,7 +114,7 @@ ethash_light_t compute_cache(uint64_t blockno) {
         light->cache_size = (uint64_t) cache_size;
         light->cache = (void*) buffer;
         cout << "POPULATED ETHASH CACHE STRUCT" << endl;
-        
+
         return light;
     }
     else {
@@ -148,7 +149,7 @@ void verify_block_header(uint64_t blockno, std::string BLOCK_HEADER_RLP, std::st
     }
 
     // TODO: verify answer is below difficulty
-    
+
     cout << "RESULT: " << hexStr(r.result.b, 32) << endl;
     cout << "MIXHASH: " << hexStr(r.mix_hash.b, 32) << endl;
     cout << "EXPECTED MIXHASH: 5247691ab0953fa5c5c2c84b0b142b6d62e9dc5f35a865ed197b9cd3736af6f1" << endl;
@@ -171,7 +172,7 @@ EthereumTx merkle_proof(const std::string& TX_RLP, std::string path, h256 merkle
         }
 
         if (node.itemCount() == 17) {
-            cout << "Branch Node" << endl; 
+            cout << "Branch Node" << endl;
 
             // convert path nibble hex to index (0-15)
             char nibble = (char) path[i];
@@ -203,7 +204,7 @@ EthereumTx merkle_proof(const std::string& TX_RLP, std::string path, h256 merkle
                 return *tx;
             }
             else {
-                cout << "Extension Node" << endl; 
+                cout << "Extension Node" << endl;
             }
         }
     }
