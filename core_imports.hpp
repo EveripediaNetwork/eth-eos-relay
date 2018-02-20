@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <typeinfo>
+#include <fstream>
 #include "custom-headers/json.hpp"
 #include "custom-headers/constants.hpp"
 
