@@ -1,5 +1,6 @@
 /** @file main.cpp
  * @author Travis Moore <travis@everipedia.com>
+ * @author Kedar Iyer <kedar@everipedia.com>
  * @date 2018
  */
 
