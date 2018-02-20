@@ -70,9 +70,11 @@ public:
         cout << "TX RLP " << tx_rlp << endl;
         cout << "SIG RLP " << sig_rlp << endl;
 
-        v = 1;
+        Signature sig = signature();
         h256 signing_hash = sha3(sig_rlp.data());
-        Public pubkey = recover(signature(), signing_hash);
+        sig.data()[64] = 0; // v must be set to 0 just for the recovery
+        Public pubkey = recover(sig, signing_hash);
+
         cout << "pubkey " << pubkey << endl;
         from = EthereumAddress(pubkey);
     }

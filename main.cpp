@@ -223,7 +223,7 @@ EthereumTx merkle_proof() {
             cout << "  Verified current node path" << endl;
         }
         else if (node.itemCount() == 2) {
-            u256 LEAF_FLAG = u256(HexToBytes("20"));
+            u256 LEAF_FLAG = u256(0x20);
 
             if (node[0][0] == LEAF_FLAG) {
                 cout << "MERKLE PROOF VERIFIED" << endl;
@@ -237,7 +237,6 @@ EthereumTx merkle_proof() {
         }
     }
 }
-
 
 int main()
 {
