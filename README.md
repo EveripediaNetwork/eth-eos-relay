@@ -12,4 +12,6 @@ To run on Ubuntu 16.04
 
 The provided code takes the RLP encoded blocks 4699999 4700000 and calculates the difficulty and the MixHash for the latter.
 
-TODO: Pre-generate the caches
+The first run will generate a verification cache and save it to the cache/ folder for future runs. 
+The second run and onward will use the pre-generated cache to verify new headers
+The cache must be re-computed every 30000 blocks per Ethereum rules.
