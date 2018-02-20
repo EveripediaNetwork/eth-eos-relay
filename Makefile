@@ -4,7 +4,7 @@ main: main.o
 	rm *.o
 
 main.o: main.cpp
-	g++ -std=c++17 -I . -c main.cpp -fpermissive -DHAVE_CONFIG_H
+	g++ -std=c++17 -I . -c main.cpp -fpermissive -Ofast -DHAVE_CONFIG_H
 
 clean:
 	rm *.o runner

@@ -17,7 +17,6 @@ public:
     EthereumAddress(Public pubkey) {
         h256 hash = sha3(pubkey.ref());
         std::copy(hash.data() + 12, hash.data() + 32, m_data);
-        cout << "pubkey hash " << hash << endl;
     }
     
     byte m_data[20];
@@ -65,17 +64,14 @@ public:
         rstream.append("");
         RLP sig_rlp = RLP(rstream.out());
         bytes b = sig_rlp.data().toBytes();
-        cout << "signing rlp " << hexStrB(&b[0], b.size()) << endl;
-
-        cout << "TX RLP " << tx_rlp << endl;
-        cout << "SIG RLP " << sig_rlp << endl;
 
         Signature sig = signature();
         h256 signing_hash = sha3(sig_rlp.data());
         sig.data()[64] = 0; // v must be set to 0 just for the recovery
+
+        // NOTE: This line takes 40ms on its own. Can it be optimized?
         Public pubkey = recover(sig, signing_hash);
 
-        cout << "pubkey " << pubkey << endl;
         from = EthereumAddress(pubkey);
     }
 

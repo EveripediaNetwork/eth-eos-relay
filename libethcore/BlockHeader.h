@@ -167,8 +167,10 @@ public:
 	u256 const& difficulty() const { return m_difficulty; }
 	template <class T> T seal(unsigned _offset = 0) const { T ret; if (_offset < m_seal.size()) ret = RLP(m_seal[_offset]).convert<T>(RLP::VeryStrict); return ret; }
 
-private:
+    // KEDAR MOVED FROM PRIVATE TO PUBLIC
 	void populate(RLP const& _header);
+
+private:
 	void streamRLPFields(RLPStream& _s) const;
 
 	h256 m_parentHash;
