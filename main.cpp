@@ -78,10 +78,10 @@ bool verify_full_block(const std::string& BLOCK_RLP, const std::string& PARENT_B
 // if it doesn't, compute and save it to file so it can be fetched
 // for future blocks
 ethash_light_t compute_cache(uint64_t blockno) {
-    cout << "ENTERING CUSTOM CACHE PART" << endl;
     const uint64_t EPOCH_LENGTH = 30000;
     uint64_t epoch = blockno / EPOCH_LENGTH;
 
+    boost::filesystem::create_directory("cache");
     std::string cachefile = "./cache/" + std::to_string(epoch);
     bool exists = access( cachefile.c_str(), F_OK ) != -1;
     if (exists) {
